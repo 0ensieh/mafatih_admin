@@ -1,4 +1,4 @@
-# News Site
+# Mafatih Admin
 <br>
 <h2>How to Run? </h2>
 <br>
