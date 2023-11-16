@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}ساخت دعا{% endblock %}
+
+{% block css %}
+	<style>
+		/* for JQuery form validator error labels */
+		label.error {
+			color: rgba(255, 0, 0, 0.82);
+			font-size: 11px;
+			cursor: pointer;
+			position: absolute;
+			z-index: 8;
+			right: 0;
+			bottom: calc(0 - 12px);
+		}
+	</style>
+{% endblock %}
+
+{% block js %}
+	<!-- JQUERY FORM VALIDATOR -->
+	<script type="text/javascript" src="{% static 'assets/plugins/jquery-form-validator/jquery.validate.js' %}"></script>
+	
+	<!-- JQUERY FORM VALIDATOR FA -->
+	<script type="text/javascript" src="{% static 'assets/plugins/jquery-form-validator/localization/messages_fa.js' %}"></script>
+	
+	<script src="{% static 'assets/plugins/intel-tel-input/intlTelInput.min.js' %}"></script>
+	
+	
+	<script>
+		document.addEventListener("DOMContentLoaded", () => {
+			// Change default message in jquery form validator
+			$.extend($.validator.messages, {
+				required: "الزامی است"
+			});
+			
+			// validate the form
+			$("form[name='create']").validate({
+				rules: {
+					name: {
+						required: true,
+						minlength: 2
+					}
+				},
+				messages: {}
+			});
+			{% if messages %}
+				{% for message in messages %}
+					showToast("{{ message }}", purple);
+				{% endfor %}
+			{% endif %}
+		});
+	</script>
+{% endblock %}
+
+{% block body_class %}rtl{% endblock %}
+{% block body %}
+
+<!-- GLOBAL-LOADER -->
+{% comment %}{% include 'loader.html' %}{% endcomment %}
+<!-- /GLOBAL-LOADER -->
+
+<!-- app-Header -->
+{% include 'header.html' %}
+<!-- /app-Header -->
+
+<!--APP-SIDEBAR-->
+{% include 'menu.html' %}
+
+<!--app-content open-->
+<div class="main-content app-content mt-0">
+	<div class="side-app">
+		<!-- CONTAINER -->
+		<div class="main-container container-fluid">
+			<!-- PAGE-HEADER OPTIONAL TO WRITE SOME DATA ABOUT request.user -->
+			<div class="page-header">
+				<div class="w-100 d-flex justify-content-between">
+					<div class="d-flex">
+						<h1 class="page-title px-2">
+							{% if request.META.HTTP_REFERER %}
+							<a href="{{ request.META.HTTP_REFERER }}">
+								<i class="fa fa-arrow-right"></i>
+								<span class="d-none d-sm-none d-md-inline-block">برگشت</span>
+							</a>
+							{% endif %}
+						</h1>
+						<div class="d-none d-sm-none d-md-block">
+							<h1 class="page-title px-2">ایجاد دعا</h1>
+						</div>
+					</div>
+					<div class="d-flex align-items-center">
+						<ol class="breadcrumb mx-2">
+							<li class="breadcrumb-item active" aria-current="page">ایجاد دعا</li>
+							<li class="breadcrumb-item">
+								<a href="{% url 'prayer:admin_prayers' %}">لیست دعاها</a>
+							</li>
+							<li class="breadcrumb-item">
+								<a href="{% url 'dashboard' %}">خانه</a>
+							</li>
+						</ol>
+					</div>
+				</div>
+			</div>
+			<!-- PAGE-HEADER END -->
+			
+			<!-- write your code here -->
+			<div class="card">
+				<div class="card-header">
+					<h3 class="card-title">
+						ایجاد دعا
+					</h3>
+				</div>
+				<div class="card-body">
+					<form name="create" method="post" action="">
+						{% csrf_token %}
+						<div class="row">
+							<div class="col-12 col-md-6">
+								<div class="form-group position-relative">
+									<label for="name" class="form-label">نام دعا</label>
+									<input class="form-control"
+										   name="name"
+										   id="name"
+										   required
+										   list="name_list"
+										   type="text"
+										   value="{% if name %}{{ name.0 }}{% endif %}"
+										   placeholder="نام دعا را وارد کنید">
+									<datalist id="name_list">
+										<option>باب اول</option>
+										<option>باب دوم</option>
+										<option>دعای توسل</option>
+										<option>زیارت عاشورا</option>
+										<option>زیارت اهل قبور</option>
+									</datalist>
+								</div>
+							</div>
+							
+							<div class="col-12 col-md-6">
+								<div class="form-group position-relative mb-2">
+									<label for="parent" class="form-label">سر دعا</label>
+									<select name="parent"
+											id="parent"
+											class="form-control select2-show-search form-select"
+											data-bs-placeholder="سر دعا">
+										<option value="">-- خالی --</option>
+										{% for item in prayers %}
+										<option value="{{item.id}}">{{item.name}}</option>
+										{% endfor %}
+									</select>
+								</div>
+							</div>
+							
+							<div class="col-12">
+								<div class="form-group position-relative">
+									<label for="phrases" class="form-label">محتوای دعا</label>
+									<small class="text-primary">
+										لطفا توضیح دعا را بین علامت
+										<span class="text-monospace">#</span>
+										و متون قرآنی را بین
+										<span class="text-monospace">$</span>
+										قرار دهید
+									</small>
+									<textarea class="form-control"
+											  name="phrases"
+											  id="phrases"
+											  placeholder="#برای توضیح# و $برای متن قرآنی$"
+											  rows="10"></textarea>
+								</div>
+							</div>
+							
+							<div class="col-12">
+								<div class="form-group position-relative">
+									<label for="publish" class="form-label">وضعیت انتشار</label>
+									<select name="publish"
+											id="publish"
+											class="form-control form-select form-select-lg select2"
+											data-bs-placeholder="وضعیت انتشار">
+										<option value="1">پخش شود</option>
+										<option value="0">پخش نشود</option>
+									</select>
+								</div>
+							</div>
+
+							<div class="col-12">
+								<div class="form-group position-relative">
+									<label for="link" class="form-label">دعای مربوطه</label>
+									<select name="link"
+											id="link"
+											multiple
+											class="form-control form-select form-select-lg select2"
+											data-bs-placeholder="دعای مربوطه">
+										<option value="">-- خالی --</option>
+										{% for item in prayers %}
+										<option value="{{item.id}}">{{item.name}}</option>
+										{% endfor %}
+									</select>
+								</div>
+							</div>
+							
+							<div class="col-12">
+								<div class="form-group text-end">
+									<button class="btn btn-primary" type="submit">
+										ثبت
+									</button>
+								</div>
+							</div>
+						</div>
+					</form>
+				</div>
+			</div>
+			<!-- /write your code here -->
+		
+		</div>
+		<!-- CONTAINER END -->
+	</div>
+</div>
+<!--app-content close-->
+
+
+<!-- Sidebar-right -->
+{% comment %}
+{% include 'side_bar.html' %}
+{% endcomment %}
+<!--/Sidebar-right-->
+
+<!-- Country-selector modal-->
+{% comment %}
+{% include 'country_selector.html' %}
+{% endcomment %}
+<!-- Country-selector modal-->
+
+<!-- FOOTER -->
+{% include 'footer.html' %}
+<!-- FOOTER END -->
+
+<!-- BACK-TO-TOP -->
+<a href="#top" id="back-to-top"><i class="fa fa-angle-up"></i></a>
+{% endblock %}

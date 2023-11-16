@@ -1,0 +1,384 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}ویرایش پروفایل{% endblock %}
+{% block css %}
+    <style>
+        /* for JQuery form validator error labels */
+        label.error {
+            color: rgba(255, 0, 0, 0.82);
+            font-size: 11px;
+            cursor: pointer;
+            position: absolute;
+            z-index: 8;
+            right: 0;
+            bottom: calc(0 - 12px);
+        }
+
+    </style>
+{% endblock %}
+{% block js %}
+    <!-- JQUERY FORM VALIDATOR -->
+    <script type="text/javascript"
+            src="{% static 'assets/plugins/jquery-form-validator/jquery.validate.js' %}"></script>
+
+    <!-- JQUERY FORM VALIDATOR FA -->
+    <script type="text/javascript"
+            src="{% static 'assets/plugins/jquery-form-validator/localization/messages_fa.js' %}"></script>
+
+    <script>
+        $(document).ready(function () {
+            const email = $("input#email");
+            const receive_code = document.getElementById('receive_code');
+            const send_code = document.getElementById('send_code');
+            const code = document.getElementById('code');
+            let verification_area = document.getElementById('verification_area');
+
+            $.extend($.validator.messages, {
+                required: "الزامی است"
+            });
+
+            // validate the form
+            let form = $("form[name='email_form']");
+            form.on('submit', (event) => {
+                event.preventDefault();
+            });
+            form.validate({
+                rules: {
+                    email: {
+                        required: true,
+                        email: true
+                    }
+                },
+                messages: {
+                    email: {
+                        email: "لطفا یک ایمیل معتبر وارد کنید!"
+                    }
+                }
+            });
+
+            email.on('change', () => {
+                if (form.valid() && email.val().trim() !== "") {
+                    console.log('form valid!');
+                    receive_code.removeAttribute("disabled");
+                }
+                else {
+                    receive_code.setAttribute('disabled', "");
+                }
+            });
+
+            if (receive_code)
+                receive_code.addEventListener('click', () => {
+
+                    receive_code.innerHTML = '';
+                    receive_code.classList.add("btn-loading", "py-3", "px-5");
+
+                $.ajax({
+                    url: "{% url 'client:send_email' %}",
+                    data: {
+                        'csrfmiddlewaretoken': document.getElementsByName("csrfmiddlewaretoken")[0].value,
+                        'email': email.val()
+                    },
+                    method: "POST",
+                    // dataType: "json",
+                    // cache: false,
+                    // processData: false,
+                    // contentType: false,
+                    success: function (context) {
+                        Toastify({
+                            text: context['message'],
+                            duration: 1500,
+                            newWindow: true,
+                            close: true,
+                            gravity: "top", // `top` or `bottom`
+                            position: "center", // `left`, `center` or `right`
+                            stopOnFocus: true, // Prevents dismissing of toast on hover
+                            style: {
+                                background: "rgb(108,95,252)"
+                            },
+                            onClick: function () {
+                            } // Callback after click
+                        }).showToast();
+
+                        verification_area.classList.remove('d-none');
+
+                        receive_code.innerHTML = receive_code.dataset.content;
+                        receive_code.classList.remove("btn-loading", "py-3", "px-5");
+                        receive_code.setAttribute('disabled', 'on');
+
+                    },
+
+                    error: function (context) {
+                        Toastify({
+                            text: context.responseJSON['message'],
+                            duration: 3000,
+                            newWindow: true,
+                            close: true,
+                            gravity: "top", // `top` or `bottom`
+                            position: "center", // `left`, `center` or `right`
+                            stopOnFocus: true, // Prevents dismissing of toast on hover
+                            style: {
+                                background: "rgb(108,95,252)"
+                            },
+                            onClick: function () {
+                            } // Callback after click
+                        }).showToast();
+
+                        receive_code.innerHTML = receive_code.dataset.content;
+                        receive_code.classList.remove("btn-loading", "py-3", "px-5");
+                        receive_code.setAttribute('disabled', '');
+                    }
+                });
+            });
+
+            if (send_code)
+                send_code.addEventListener('click', () => {
+                $.ajax({
+                    url: "{% url 'client:verification_code_email' %}",
+                    data: {
+                        'csrfmiddlewaretoken': document.getElementsByName("csrfmiddlewaretoken")[0].value,
+                        'code': code.value
+                    },
+                    method: "POST",
+                    // dataType: "json",
+                    // cache: false,
+                    // processData: false,
+                    // contentType: false,
+                    success: function (context) {
+                        Toastify({
+                            text: context['message'],
+                            duration: 3000,
+                            newWindow: true,
+                            close: true,
+                            gravity: "top", // `top` or `bottom`
+                            position: "center", // `left`, `center` or `right`
+                            stopOnFocus: true, // Prevents dismissing of toast on hover
+                            style: {
+                                background: "rgb(108,95,252)"
+                            },
+                            onClick: function () {
+                            } // Callback after click
+                        }).showToast();
+
+                        verification_area.classList.add('d-none');
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    },
+                    error: function (context) {
+
+                    }
+                });
+            });
+
+            {% if messages %}
+                {% for message in messages %}
+                Toastify({
+                    text: "{{ message }}",
+                    duration: 3000,
+                    newWindow: true,
+                    close: true,
+                    gravity: "top", // `top` or `bottom`
+                    position: "center", // `left`, `center` or `right`
+                    stopOnFocus: true, // Prevents dismissing of toast on hover
+                    style: {
+                        background: "rgb(108,95,252)"
+                    },
+                    onClick: function () {
+                    } // Callback after click
+                }).showToast();
+                {% endfor %}
+            {% endif %}
+        });
+    </script>
+{% endblock %}
+{% block body %}
+    <!-- PAGE -->
+    <div class="page">
+        <div class="page-main">
+
+            {% include 'header.html' %}
+            {% include 'menu.html' %}
+            <!--app-content open-->
+            <div class="main-content app-content mt-0">
+                <div class="side-app">
+
+                    <!-- CONTAINER -->
+                    <div class="main-container container-fluid">
+
+                        <!-- PAGE-HEADER -->
+                        <div class="page-header">
+                            <div class="w-100 d-flex justify-content-between">
+                                <div class="d-flex">
+                                    <h1 class="page-title px-2">
+                                        {% if request.META.HTTP_REFERER %}
+                                        <a href="{{ request.META.HTTP_REFERER }}">
+                                            <i class="fa fa-arrow-right"></i>
+                                            <span class="d-none d-sm-none d-md-inline-block">برگشت</span>
+                                        </a>
+                                        {% endif %}
+                                    </h1>
+                                    <div class="d-none d-sm-none d-md-block">
+                                        <h1 class="page-title px-2">ویرایش حساب‌کاربری</h1>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <ol class="breadcrumb mx-2">
+                                        <li class="breadcrumb-item active" aria-current="page">ویرایش حساب‌کاربری</li>
+                                        <li class="breadcrumb-item">
+                                            <a href="{% url 'dashboard' %}">خانه</a>
+                                        </li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- PAGE-HEADER END -->
+
+                        <!-- ROW-1 OPEN -->
+                        <div class="row">
+                            <div class="col-lg-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">
+                                            ایمیل
+                                            <span class="{% if user.email_verified %}text-success{% else %}text-danger{% endif %} verification-email">{% if user.email_verified %}(احراز شده){% else %}(احراز نشده){% endif %}</span>
+                                        </h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <form method="post" name="email_form">
+                                            {% csrf_token %}
+                                            <div class="form-group position-relative">
+                                                <label for="email">ایمیل</label>
+                                                <input type="email"
+                                                       name="email"
+                                                       id="email"
+                                                       autocomplete="on"
+                                                       class="form-control {% if user.email_verified %}border-success{% endif %}"
+                                                       placeholder="ایمیل"
+                                                       style="direction: ltr"
+                                                       value="{% if user.email %}{{ user.email }}{% endif %}">
+                                            </div>
+
+                                            {% if not user.email_verified %}
+                                                <div>
+                                                    <button class="btn btn-sm btn-primary mt-2 mb-1"
+                                                            id="receive_code"
+                                                            data-content="دریافت کد"
+                                                            type="button">
+                                                        دریافت کد
+                                                    </button>
+
+                                                    <!--<button type="button" class="btn btn-success btn-loading btn-icon">
+                                                        <i class="fe fe-check"></i>
+                                                    </button>-->
+                                                </div>
+                                            {% endif %}
+                                        </form>
+
+
+                                        <div class="d-none" id="verification_area">
+                                            <hr />
+                                            <form method="post" class="my-2">
+                                                <div class="form-group">
+                                                    <label for="code">کد تائید ایمیل</label>
+                                                    <input type="text"
+                                                           style="direction: ltr"
+                                                           name="code"
+                                                           id="code"
+                                                           required
+                                                           class="form-control">
+                                                </div>
+                                                <button class="btn btn-sm btn-primary"
+                                                        id="send_code"
+                                                        type="button">
+                                                    ارسال کد تائید
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-8">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">ویرایش حساب کاربری</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="text-center chat-image mb-5">
+                                            <div class="avatar avatar-xxl chat-profile mb-3 brround">
+                                                <a class="" href="javascript:void(0)">
+                                                    <img alt="avatar"
+                                                         src="{% if user.image %}{{ user.image.url }}{% else %}{% static "assets/images/users/1.png" %}{% endif %}"
+                                                         class="brround">
+                                                </a>
+                                            </div>
+                                            <div class="main-chat-msg-name">
+                                                <a href="javascript:void(0)">
+                                                    <h5 class="mb-1 text-dark fw-semibold">
+                                                        {% if user.first_name %}
+                                                            {{ user.get_full_name }}{% else %}بدون
+                                                        نام{% endif %}</h5>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <form method="post" enctype="multipart/form-data">
+                                            {% csrf_token %}
+                                            <div class="row">
+                                                <div class="col-12">
+                                                    <div class="form-group">
+                                                        <label for="cellphone">موبایل</label>
+                                                        <input type="text"
+                                                               name="cellphone"
+                                                               style="direction: ltr"
+                                                               class="form-control text-monospace"
+                                                               id="cellphone"
+                                                               disabled=""
+                                                               readonly=""
+                                                               value="{% if user.cellphone %}{{ user.cellphone }}{% endif %}">
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg-6 col-md-12">
+                                                    <div class="form-group">
+                                                        <label for="first_name">نام</label>
+                                                        <input type="text"
+                                                               name="first_name"
+                                                               class="form-control"
+                                                               id="first_name"
+                                                               placeholder="نام خود را وارد کنید"
+                                                               value="{% if user.first_name %}{{ user.first_name }}{% endif %}">
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg-6 col-md-12">
+                                                    <div class="form-group">
+                                                        <label for="last_name">نام خانوادگی</label>
+                                                        <input type="text"
+                                                               name="last_name"
+                                                               class="form-control"
+                                                               id="last_name"
+                                                               placeholder="نام خانوادگی خود را وارد کنید"
+                                                               value="{% if user.last_name %}{{ user.last_name }}{% endif %}">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="image">پروفایل جدید</label>
+                                                <input type="file" name="image" class="form-control" id="image">
+                                            </div>
+
+                                            <hr />
+
+                                            <div class="text-end">
+                                                <button type="submit" class="btn btn-success my-1">ثبت</button>
+                                                <!--<a href="javascript:void(0)" class="btn btn-danger my-1">انصراف</a>-->
+                                            </div>
+                                        </form>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

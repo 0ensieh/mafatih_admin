@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}لیست دعاها{% endblock %}
+{% block css %}
+	<style>
+		/* for JQuery form validator error labels */
+		label.error {
+			color: rgba(255, 0, 0, 0.82);
+			font-size: 11px;
+			cursor: pointer;
+			position: absolute;
+			z-index: 8;
+			right: 0;
+			bottom: calc(0 - 12px);
+		}
+	
+	</style>
+{% endblock %}
+
+{% block js %}
+    <!-- INTERNAL Data tables js-->
+    <script src="{% static 'assets/plugins/datatable/js/jquery.dataTables.min.js' %}"></script>
+    <script src="{% static 'assets/plugins/datatable/js/dataTables.bootstrap5.js' %}"></script>
+    <script src="{% static 'assets/plugins/datatable/dataTables.responsive.min.js' %}"></script>
+	<script>
+		$(document).ready(function () {
+			const table_ids = ["#data-table"];
+			
+			for (const id of table_ids) {
+				console.log(id);
+				$(id).DataTable({
+					language: {
+						"paging": false,
+						"ordering": false,
+						"bLengthChange": false,
+						"decimal": "",
+						"emptyTable": "هیچ رکوردی وجود ندارد",
+						// "info": "نمایش از _START_ تا _END_ از _TOTAL_ ریکورد",
+						"info": "",
+						"infoEmpty": "ریکوردی جهت نمایش وجود ندارد",
+						// "infoFiltered": "(filtered from _MAX_ total entries)",
+						"infoFiltered": "",
+						"infoPostFix": "",
+						"thousands": ",",
+						"lengthMenu": "نمایش تعداد _MENU_",
+						"loadingRecords": "در حال لود کردن اطلاعات...",
+						"processing": "در حال پردازش...",
+						"search": "جستجو:",
+						"zeroRecords": "نتیجه‌ای یافت نشد",
+						"paginate": {
+							"first": "اول",
+							"last": "آخر",
+							"next": "بعد",
+							"previous": "قبل"
+						},
+						"aria": {
+							"sortAscending": ": activate to sort column ascending",
+							"sortDescending": ": activate to sort column descending"
+						}
+					},
+					pageLength: 100,
+				});
+			}
+		});
+	</script>
+{% endblock %}
+
+{% block body %}
+    {% include "header.html" %}
+    {% include "menu.html" %}
+    <div class="main-content app-content mt-0">
+        <div class="side-app">
+            <div class="main-container container-fluid">
+
+                <!-- PAGE-HEADER OPTIONAL TO WRITE SOME DATA ABOUT request.user -->
+				<div class="page-header">
+					<div class="w-100 d-flex justify-content-between">
+						<div class="d-flex">
+							<h1 class="page-title px-2">
+								{% if request.META.HTTP_REFERER %}
+								<a href="{{ request.META.HTTP_REFERER }}">
+									<i class="fa fa-arrow-right"></i>
+									<span class="d-none d-sm-none d-md-inline-block">برگشت</span>
+								</a>
+								{% endif %}
+							</h1>
+							<div class="d-none d-sm-none d-md-block">
+								<h1 class="page-title px-2">لیست دعاها</h1>
+							</div>
+						</div>
+						<div class="d-flex align-items-center">
+							<ol class="breadcrumb mx-2">
+								<li class="breadcrumb-item active" aria-current="page">لیست دعاها</li>
+								<li class="breadcrumb-item">
+									<a href="{% url 'dashboard' %}">خانه</a>
+								</li>
+							</ol>
+						</div>
+					</div>
+				</div>
+                <!-- PAGE-HEADER END -->
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title mb-0">لیست دعاها</h3>
+                        <a href="{% url 'prayer:admin_prayer_create' %}"
+                           class="btn btn-primary ms-auto"
+                           aria-expanded="false">
+                            اضافه کردن<span class="caret"></span>
+                        </a>
+                    </div>
+                    <div class="card-body pt-4">
+                        <div class="grid-margin">
+                            <div class="panel panel-primary">
+                                <div class="panel-body tabs-menu-body border-0 pt-0">
+                                    <div class="table-responsive">
+                                        <table id="data-table" class="table table-bordered text-nowrap mb-0">
+                                            <thead class="border-top">
+                                            <tr>
+                                                <th class="bg-transparent border-bottom-0">آی دی</th>
+                                                <th class="bg-transparent border-bottom-0">نام دعا</th>
+												<th class="bg-transparent border-bottom-0">سر دعا</th>
+												<th class="bg-transparent border-bottom-0">نمایش</th>
+                                                <th class="bg-transparent border-bottom-0">تعداد فراز</th>
+                                                <th class="bg-transparent border-bottom-0" style="width: 5%;">عملیات</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+												{% for item in prayers %}
+												<tr>
+													<td>
+														{{item.id}}
+													</td>
+													<td>
+														{{item.name}}
+													</td>
+													<td>
+														{% if item.parent %}
+															{{ item.parent.name }}
+														{% else %}
+															ندارد
+														{% endif %}
+													</td>
+													<td>
+														{% if item.publish %}
+															<span class="badge bg-success-transparent rounded-pill text-success p-2 px-3">انتشار</span>
+														{% else %}
+															<span class="badge bg-danger-transparent rounded-pill text-danger p-2 px-3">عدم انتشار</span>
+														{% endif %}
+													</td>
+													<td>
+														{% if item.phrase_set.count != 0 %}
+															<span class="badge bg-success-transparent rounded-pill text-success p-2 px-3">{{ item.phrase_set.count }}</span>
+														{% else %}
+															<span class="badge bg-danger-transparent rounded-pill text-danger p-2 px-3">ندارد</span>
+														{% endif %}
+													</td>
+													<td>
+														<div class="g-2 d-flex justify-content-center">
+															<a href="{% url 'prayer:admin_prayer_edit' item.id %}"
+															   class="btn text-primary btn-sm" data-bs-toggle="tooltip"
+															   data-bs-original-title="ویرایش">
+																<span class="fe fe-edit fs-14"></span>
+															</a>
+														</div>
+													</td>
+												</tr>
+												{% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

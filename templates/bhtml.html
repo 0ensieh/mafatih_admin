@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{% endblock %}
+{% block css %}{% endblock %}
+{% block js %}{% endblock %}
+{% block body_class %}rtl{% endblock %}
+{% block body %}
+
+    <!-- GLOBAL-LOADER -->
+    {% comment %}{% include 'loader.html' %}{% endcomment %}
+    <!-- /GLOBAL-LOADER -->
+
+    <!-- app-Header -->
+    {% include 'header.html' %}
+    <!-- /app-Header -->
+
+    <!--APP-SIDEBAR-->
+    {% include 'menu.html' %}
+
+    <!--app-content open-->
+    <div class="main-content app-content mt-0">
+        <div class="side-app">
+            <!-- CONTAINER -->
+            <div class="main-container container-fluid">
+                <!-- PAGE-HEADER OPTIONAL TO WRITE SOME DATA ABOUT request.user -->
+                <div class="page-header">
+                    <div class="w-100 d-flex justify-content-between">
+                        <div class="d-flex">
+                            <h1 class="page-title px-2">
+                                {% if request.META.HTTP_REFERER %}
+                                    <a href="{{ request.META.HTTP_REFERER }}">
+                                        <i class="fa fa-arrow-right"></i>
+                                        <span class="d-none d-sm-none d-md-inline-block">برگشت</span>
+                                    </a>
+                                {% endif %}
+                            </h1>
+                            <div class="d-none d-sm-none d-md-block">
+                                <h1 class="page-title px-2">ساخت یا ویرایش مانیتور</h1>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <ol class="breadcrumb mx-2">
+                                <li class="breadcrumb-item active" aria-current="page">ساخت یا ویرایش مانیتور</li>
+                                <li class="breadcrumb-item">
+                                    <a href="{% url 'monitor:monitor_list' %}">لیست مانیتور‌ها</a>
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+                <!-- PAGE-HEADER END -->
+
+                <!-- write your code here -->
+                hello world
+                <!-- /write your code here -->
+
+            </div>
+            <!-- CONTAINER END -->
+        </div>
+    </div>
+    <!--app-content close-->
+
+
+    <!-- Sidebar-right -->
+    {% comment %}
+    {% include 'side_bar.html' %}
+    {% endcomment %}
+    <!--/Sidebar-right-->
+
+    <!-- Country-selector modal-->
+    {% comment %}
+    {% include 'country_selector.html' %}
+    {% endcomment %}
+    <!-- Country-selector modal-->
+
+    <!-- FOOTER -->
+    {% include 'footer.html' %}
+    <!-- FOOTER END -->
+
+    <!-- BACK-TO-TOP -->
+    <a href="#top" id="back-to-top"><i class="fa fa-angle-up"></i></a>
+{% endblock %}

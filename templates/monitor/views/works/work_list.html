@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}لیست دستورات مانیتور {{ monitor.name }}{% endblock %}
+{% block css %}{% endblock %}
+{% block js %}{% endblock %}
+{% block body_class %}rtl{% endblock %}
+{% block body %}
+
+    <!-- GLOBAL-LOADER -->
+    {% comment %}{% include 'loader.html' %}{% endcomment %}
+    <!-- /GLOBAL-LOADER -->
+
+    <!-- app-Header -->
+    {% include 'header.html' %}
+    <!-- /app-Header -->
+
+    <!--APP-SIDEBAR-->
+    {% include 'menu.html' %}
+
+    <!--app-content open-->
+    <div class="main-content app-content mt-0">
+        <div class="side-app">
+            <!-- CONTAINER -->
+            <div class="main-container container-fluid">
+                <!-- PAGE-HEADER OPTIONAL TO WRITE SOME DATA ABOUT request.user -->
+                <div class="page-header">
+                    <div class="d-flex">
+                         <h1 class="page-title px-2">
+                            {% if request.META.HTTP_REFERER %}
+                                <a href="{{ request.META.HTTP_REFERER }}">
+                                    <i class="fa fa-arrow-right"></i>
+                                    برگشت
+                                </a>
+                            {% endif %}
+                        </h1>
+                        <h1 class="page-title px-2">دستورات مانوتور</h1>
+                    </div>
+                    <div>
+                        <ol class="breadcrumb mx-2">
+                            <li class="breadcrumb-item active" aria-current="page">
+                                لیست دستورات
+                                {{ monitor.name }}
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{% url 'monitor:monitor_single' monitor.id %}">
+                                    مانیتور
+                                    {{ monitor.name }}
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{% url 'dashboard' %}">
+                                    خانه
+                                </a>
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+                <!-- PAGE-HEADER END -->
+
+                <!-- write your code here -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            دستورات مانیتور
+                            {{ monitor.name }}
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-12">
+                                <table class="table border text-nowrap text-md-nowrap table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>status code</th>
+                                            <th>max time</th>
+                                            <th>method</th>
+                                            <th>phones</th>
+                                            <th>ویرایش</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for mw in monitor_works %}
+                                            <tr>
+                                                <td>{{ mw.id }}</td>
+                                                <td>{{ mw.status_code }}</td>
+                                                <td>{{ mw.max_time }}</td>
+                                                <td>{{ mw.get_method }}</td>
+                                                <td>{{ mw.phones }}</td>
+                                                <td>
+                                                    <a href="{% url 'monitor:work:work_single' mw.monitor.id mw.id %}">
+                                                        ویرایش
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- /write your code here -->
+
+            </div>
+            <!-- CONTAINER END -->
+        </div>
+    </div>
+    <!--app-content close-->
+
+
+    <!-- Sidebar-right -->
+    {% comment %}
+    {% include 'side_bar.html' %}
+    {% endcomment %}
+    <!--/Sidebar-right-->
+
+    <!-- Country-selector modal-->
+    {% comment %}
+    {% include 'country_selector.html' %}
+    {% endcomment %}
+    <!-- Country-selector modal-->
+
+    <!-- FOOTER -->
+    {% include 'footer.html' %}
+    <!-- FOOTER END -->
+
+    <!-- BACK-TO-TOP -->
+    <a href="#top" id="back-to-top"><i class="fa fa-angle-up"></i></a>
+{% endblock %}

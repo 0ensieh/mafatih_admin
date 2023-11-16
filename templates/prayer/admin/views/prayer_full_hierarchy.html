@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load mptt_tags %}
+{% block title %}سلسله‌مراتب کامل{% endblock %}
+{% block css %}
+    <!-- JQUERY hor tree -->
+    <link rel="stylesheet" href="{% static 'assets/plugins/jquery-hor-tree/jquery.hortree.css' %}">
+{% endblock %}
+{% block js %}
+    <script>
+        var link = "";
+    </script>
+    <script src="{% static 'assets/plugins/jquery-line/jquery.line.js' %}"></script>
+    <script src="{% static 'assets/plugins/jquery-hor-tree/jquery.hortree.js' %}"></script>
+
+    <script>
+        $(document).ready(function () {
+            var link = ""
+            $('#ali').hortree({
+                data: {{ full_hierarchy|safe }},
+                lineStrokeWidth: 2,
+                lineZindex: 1,
+                lineColor: '#3600c0',
+                //lineColor: 'rgba(253,253,253,0.17)',
+                onComplete: function () {
+                    // onComplete callback
+                }
+            });
+        });
+    </script>
+{% endblock %}
+{% block body %}
+
+    <!-- GLOBAL-LOADER -->
+    {% comment %}{% include 'admin/loader.html' %}{% endcomment %}
+    <!-- /GLOBAL-LOADER -->
+
+    <!-- app-Header -->
+    {% comment %}{% include 'admin/header.html' %}{% endcomment %}
+    <!-- /app-Header -->
+
+    <!--APP-SIDEBAR-->
+    {% comment %}{% include 'admin/menu.html' %}{% endcomment %}
+
+    <!--app-content open-->
+    <div class="main-content mt-0">
+        <div class="side-app">
+            <!-- CONTAINER -->
+            <div class="main-container container-fluid">
+                <!-- PAGE-HEADER OPTIONAL TO WRITE SOME DATA ABOUT request.user -->
+				<div class="page-header">
+					<div class="w-100 d-flex justify-content-between">
+						<div class="d-flex">
+							<h1 class="page-title px-2">
+								{% if request.META.HTTP_REFERER %}
+								<a href="{{ request.META.HTTP_REFERER }}">
+									<i class="fa fa-arrow-right"></i>
+									<span class="d-none d-sm-none d-md-inline-block">برگشت</span>
+								</a>
+								{% endif %}
+							</h1>
+							<div class="d-none d-sm-none d-md-block">
+								<h1 class="page-title px-2">{{ prayer.name }}</h1>
+							</div>
+						</div>
+						<div class="d-flex align-items-center">
+							<ol class="breadcrumb mx-2">
+								<li class="breadcrumb-item active" aria-current="page">{{ prayer.name }}</li>
+								<li class="breadcrumb-item">
+									<a href="{% url 'prayer:admin_prayers' %}">لیست دعاها</a>
+								</li>
+								<li class="breadcrumb-item">
+									<a href="{% url 'dashboard' %}">خانه</a>
+								</li>
+							</ol>
+						</div>
+					</div>
+				</div>
+                <!-- PAGE-HEADER END -->
+
+                <!-- write your code here -->
+                <div class="row">
+                    <div class="col-12">
+                       <div id="ali"></div>
+                    </div>
+                </div>
+                <!-- /write your code here -->
+
+            </div>
+            <!-- CONTAINER END -->
+        </div>
+    </div>
+    <!--app-content close-->
+
+
+    <!-- Sidebar-right -->
+    {% comment %}
+    {% include 'admin/side_bar.html' %}
+    {% endcomment %}
+    <!--/Sidebar-right-->
+
+    <!-- Country-selector modal-->
+    {% comment %}
+    {% include 'admin/country_selector.html' %}
+    {% endcomment %}
+    <!-- Country-selector modal-->
+
+    <!-- FOOTER -->
+    {% comment %}{% include 'admin/footer.html' %}{% endcomment %}
+    <!-- FOOTER END -->
+
+    <!-- BACK-TO-TOP -->
+    <a href="#top" id="back-to-top"><i class="fa fa-angle-up"></i></a>
+{% endblock %}

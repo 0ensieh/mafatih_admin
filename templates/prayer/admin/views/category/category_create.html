@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}ایجاد دسته‌بندی{% endblock %}
+
+{% block css %}
+	<style>
+		/* for JQuery form validator error labels */
+		label.error {
+			color: rgba(255, 0, 0, 0.82);
+			font-size: 11px;
+			cursor: pointer;
+			position: absolute;
+			z-index: 8;
+			right: 0;
+			bottom: calc(0 - 12px);
+		}
+		
+		.select2-container--default .select2-results__option[aria-selected=true] {
+			/*background-color: #6C5FFC !important;*/
+		}
+		
+	</style>
+{% endblock %}
+
+{% block js %}
+	<!-- JQUERY FORM VALIDATOR -->
+	<script type="text/javascript" src="{% static 'assets/plugins/jquery-form-validator/jquery.validate.js' %}"></script>
+	
+	<!-- JQUERY FORM VALIDATOR FA -->
+	<script type="text/javascript" src="{% static 'assets/plugins/jquery-form-validator/localization/messages_fa.js' %}"></script>
+	
+	<script src="{% static 'assets/plugins/intel-tel-input/intlTelInput.min.js' %}"></script>
+	
+	
+	<script>
+		document.addEventListener("DOMContentLoaded", () => {
+			// Change default message in jquery form validator
+			$.extend($.validator.messages, {
+				required: "الزامی است"
+			});
+			
+			// validate the form
+			$("form[name='create']").validate({
+				rules: {
+					title: {
+						required: true,
+						minlength: 3
+					}
+				},
+				messages: {}
+			});
+			{% if messages %}
+				{% for message in messages %}
+					showToast("{{ message }}", purple);
+				{% endfor %}
+			{% endif %}
+			
+			
+		});
+	</script>
+{% endblock %}
+
+{% block body_class %}rtl{% endblock %}
+{% block body %}
+
+<!-- GLOBAL-LOADER -->
+{% comment %}{% include 'loader.html' %}{% endcomment %}
+<!-- /GLOBAL-LOADER -->
+
+<!-- app-Header -->
+{% include 'header.html' %}
+<!-- /app-Header -->
+
+<!--APP-SIDEBAR-->
+{% include 'menu.html' %}
+
+<!--app-content open-->
+<div class="main-content app-content mt-0">
+	<div class="side-app">
+		<!-- CONTAINER -->
+		<div class="main-container container-fluid">
+			<!-- PAGE-HEADER OPTIONAL TO WRITE SOME DATA ABOUT request.user -->
+			<div class="page-header">
+				<div class="w-100 d-flex justify-content-between">
+					<div class="d-flex">
+						<h1 class="page-title px-2">
+							{% if request.META.HTTP_REFERER %}
+							<a href="{{ request.META.HTTP_REFERER }}">
+								<i class="fa fa-arrow-right"></i>
+								<span class="d-none d-sm-none d-md-inline-block">برگشت</span>
+							</a>
+							{% endif %}
+						</h1>
+						<div class="d-none d-sm-none d-md-block">
+							<h1 class="page-title px-2">ایجاد دسته‌بندی</h1>
+						</div>
+					</div>
+					<div class="d-flex align-items-center">
+						<ol class="breadcrumb mx-2">
+							<li class="breadcrumb-item active" aria-current="page">ایجاد دسته‌بندی</li>
+							<li class="breadcrumb-item">
+								<a href="{% url 'prayer:admin_categories' %}">لیست دسته‌بندی‌ها</a>
+							</li>
+							<li class="breadcrumb-item">
+								<a href="{% url 'dashboard' %}">خانه</a>
+							</li>
+						</ol>
+					</div>
+				</div>
+			</div>
+			<!-- PAGE-HEADER END -->
+			
+			<!-- write your code here -->
+			<div class="card">
+				<div class="card-header">
+					<h3 class="card-title">
+						ایجاد دسته‌بندی
+					</h3>
+				</div>
+				<div class="card-body">
+					<form name="create" method="post" action="">
+						{% csrf_token %}
+						<div class="row">
+							<div class="col-12 col-md-6">
+								<div class="form-group position-relative">
+									<label for="title" class="form-label">نام دسته‌بندی</label>
+									<input class="form-control"
+										   name="title"
+										   id="title"
+										   required
+										   list="title_list"
+										   type="text"
+										   value="{% if title %}{{ title }}{% endif %}"
+										   placeholder="نام دسته‌بندی را وارد کنید">
+									<datalist id="title_list">
+										<option>ماه محرم</option>
+										<option>ماه شعبان</option>
+										<option>ماه رمضان</option>
+										<option>روز عرفه</option>
+										<option>شب ۲۱ رمضان</option>
+										<option>شب قدر</option>
+									</datalist>
+								</div>
+							</div>
+							
+							<div class="col-12 col-md-6">
+								<div class="form-group position-relative mb-2">
+									<label for="parent" class="form-label">دسته‌بندی والد</label>
+									<select name="parent"
+											id="parent"
+											class="form-control select2-show-search form-select"
+											data-bs-placeholder="سر دسته‌بندی">
+										<option value="">-- خالی --</option>
+										{% for item in categories %}
+										<option {% if item.id == parent %}selected{% endif %} value="{{ item.id }}">{{ item.title }}</option>
+										{% endfor %}
+									</select>
+								</div>
+							</div>
+							
+							<div class="col-12 col-md-6">
+								<div class="form-group position-relative">
+									<label for="publish" class="form-label">وضعیت انتشار</label>
+									<select name="publish"
+											id="publish"
+											required
+											class="form-control form-select form-select-lg select2"
+											data-bs-placeholder="وضعیت انتشار">
+										<option value="1">پخش شود</option>
+										<option value="0">پخش نشود</option>
+									</select>
+								</div>
+							</div>
+							
+							<div class="col-12 col-md-6">
+								<div class="form-group position-relative">
+									<label for="index" class="form-label">نمایش در فهرست</label>
+									<select name="index"
+											id="index"
+											required
+											class="form-control form-select form-select-lg select2"
+											data-bs-placeholder="نمایش در فهرست">
+										<option value="1">نمایش داده شود</option>
+										<option value="0">نمایش داده نشود</option>
+									</select>
+								</div>
+							</div>
+							
+							<div class="col-12">
+								<div class="form-group position-relative">
+									<label for="prayer_ids" class="form-label">دعاهای مربوطه</label>
+									<select name="prayer_ids"
+											id="prayer_ids"
+											multiple
+											class="form-control form-select form-select-lg select2"
+											data-bs-placeholder="نمایش در فهرست">
+										{% for item in prayers %}
+											<option {% if item.id in prayer_ids %}selected{% endif %} value="{{ item.id }}">{{ item.name }}</option>
+										{% endfor %}
+									</select>
+								</div>
+							</div>
+							
+							<div class="col-12">
+								<div class="form-group text-end">
+									<button class="btn btn-primary" type="submit">
+										ثبت
+									</button>
+								</div>
+							</div>
+						</div>
+					</form>
+				</div>
+			</div>
+			<!-- /write your code here -->
+		
+		</div>
+		<!-- CONTAINER END -->
+	</div>
+</div>
+<!--app-content close-->
+
+
+<!-- Sidebar-right -->
+{% comment %}
+{% include 'side_bar.html' %}
+{% endcomment %}
+<!--/Sidebar-right-->
+
+<!-- Country-selector modal-->
+{% comment %}
+{% include 'country_selector.html' %}
+{% endcomment %}
+<!-- Country-selector modal-->
+
+<!-- FOOTER -->
+{% include 'footer.html' %}
+<!-- FOOTER END -->
+
+<!-- BACK-TO-TOP -->
+<a href="#top" id="back-to-top"><i class="fa fa-angle-up"></i></a>
+{% endblock %}

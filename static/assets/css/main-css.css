@@ -1,0 +1,74 @@
+select#protocol {
+    font-size: 12px;
+    width: 70px;
+    margin: 0 12px;
+    border: none;
+    border-radius: 3px;
+    padding: 0 5px;
+    background-color: gainsboro;
+}
+
+input#domain {
+    margin: 0 10px;
+    border: none;
+    border-radius: 3px;
+    padding: 0 5px;
+    background-color: gainsboro;
+}
+
+input#port {
+    width: 55px;
+    margin: 0 10px;
+    border: none;
+    border-radius: 3px;
+    padding: 0 5px;
+    background-color: gainsboro;
+}
+
+input#path {
+    margin: 0 10px;
+    border: none;
+    border-radius: 3px;
+    padding: 0 5px;
+    background-color: gainsboro;
+}
+
+span.syntax {
+    display: flex;
+    align-items: center;
+    font-size: 18px;
+}
+
+a#test {
+    display: flex;
+    align-items: center;
+    margin: 0 25px;
+    background: #6495ed;
+    padding: 3px 20px;
+    border-radius: 3px;
+}
+
+a#test:hover {
+    background: #6495ed90;
+    cursor: pointer;
+}
+
+button.monitor-submit {
+    border: none;
+    padding: 4px 10px;
+    font-size: 12px;
+    border-radius: 3px;
+    background: #228b22;
+    color: #ffffff;
+}
+
+button.monitor-submit:hover {
+    background: #228b2290;
+    cursor: pointer;
+}
+input#name {
+    border: none;
+    border-radius: 3px;
+    padding: 0 5px;
+    background-color: gainsboro;
+}

@@ -1,0 +1,6 @@
+Django
+djangorestframework
+mysqlclient
+django-mptt
+jdatetime
+django-jalali

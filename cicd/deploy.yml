@@ -1,0 +1,19 @@
+deploy_stage:
+  stage: deploy
+  variables:
+    IMAGE_ID: "scr.rafed.net/rafed/mafatih:"
+  only:
+    refs:
+      - stage
+    changes:
+      - cicd/version.txt
+  environment:
+    name: $PROJECT_NAME
+  dependencies:
+    - build_all
+  script:
+    - pwd
+    - export VERSION=$(cat cicd/version.txt)
+    - docker build . -t $IMAGE_ID$VERSION
+    - docker push $IMAGE_ID$VERSION
+    - helm upgrade --install mafatih-django cicd/mafatih-django --set image.tag=$VERSION -f cicd/mafatih-django/values.yaml

@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}ورود / ثبت‌نام{% endblock %}
+{% block css %}
+<link rel="stylesheet" href="{% static 'assets/plugins/intel-tel-input/intlTelInput.css' %}">
+
+<style>
+	div.login-img {
+		background: linear-gradient(
+				to left top,
+				rgba(0, 255, 217, 0.75),
+				rgba(155, 73, 255, 0.68)
+		),
+		url("{% static 'assets/images/media/bg2.jpg' %}") center top;
+		background-size: cover;
+	}
+	
+	/* for JQuery form validator error labels */
+	label.error {
+		color: rgba(255, 0, 0, 0.82);
+		font-size: 11px;
+		cursor: pointer;
+		position: absolute;
+		z-index: 8;
+		left: 0;
+		bottom: calc(100% - 6px);
+	}
+	
+	.iti {
+		width: 100%;
+	}
+
+
+</style>
+{% endblock %}
+{% block js %}
+<!-- JQUERY FORM VALIDATOR -->
+<script type="text/javascript"
+		src="{% static 'assets/plugins/jquery-form-validator/jquery.validate.js' %}"></script>
+
+<!-- JQUERY FORM VALIDATOR FA -->
+<script type="text/javascript"
+		src="{% static 'assets/plugins/jquery-form-validator/localization/messages_fa.js' %}"></script>
+
+<script src="{% static 'assets/plugins/intel-tel-input/intlTelInput.min.js' %}"></script>
+
+<!-- SHOW PASSWORD JS -->
+<script src="{% static 'assets/js/show-password.min.js' %}"></script>
+
+<script>
+	$(document).ready(function () {
+		// Change default message in jquery form validator
+		$.extend($.validator.messages, {
+			required: "الزامی است"
+		});
+		
+		// validate the form
+		$("form[name='login']").validate({
+			rules: {
+				cellphone: {
+					required: true,
+					minlength: 10,
+					maxlength: 15
+				}
+			},
+			messages: {
+				cellphone: {
+					minlength: "شماره وارد شده معتبر نیست",
+					maxlength: "شماره وارد شده معتبر نیست"
+				}
+			}
+		});
+		{% if messages %}
+		{% for message in messages %}
+		Toastify({
+			text: "{{ message }}",
+			duration: 3000,
+			newWindow: true,
+			close: true,
+			gravity: "top", // `top` or `bottom`
+			position: "center", // `left`, `center` or `right`
+			stopOnFocus: true, // Prevents dismissing of toast on hover
+			style: {
+				background: "rgb(108,95,252)"
+			},
+			onClick: function () {
+			} // Callback after click
+		}).showToast();
+		{% endfor %}
+		{% endif %}
+		
+		let cellphone = document.querySelector("#cellphone");
+		let intel = window.intlTelInput(cellphone, {
+			preferredCountries: ['ir'],
+			autoInsertDialCode: true,
+			utilsScript: "{% static 'assets/plugins/intel-tel-input/utils.js' %}"
+		});
+		cellphone.addEventListener('input', () => {
+			cellphone.value = intel.getNumber();
+		})
+	});
+</script>
+{% endblock %}
+{% block body_class %}ltr{% endblock %}
+{% block body %}
+<!-- CONTAINER OPEN -->
+
+
+<!-- BACKGROUND-IMAGE -->
+<div class="login-img">
+	
+	<!-- GLOABAL LOADER -->
+	{% comment %} <div id="global-loader">
+	<img src="{% static "assets/images/loader.svg" %}" class="loader-img" alt="Loader">
+</div> {% endcomment %}
+	<!-- /GLOABAL LOADER -->
+	
+	<!-- PAGE -->
+	<div class="page">
+		<div class="">
+			
+			<!-- CONTAINER OPEN -->
+			<div class="col col-login mx-auto mt-7">
+				<div class="text-center">
+					<img src="{% static "assets/images/brand/favicon.svg" %}"
+											   style="max-width: 90px"
+											   class="header-brand-img"
+											   alt="logo">
+				</div>
+			</div>
+			
+			<div class="container-login100">
+				<div class="wrap-login100 col-10 col-sm-8 col-md-6 p-6 container">
+					<form method="post" name="login" class="login100-form validate-form">
+						{% csrf_token %}
+						<span class="font-bold login100-form-title pb-5">
+                                ورود
+						</span>
+						<div class="panel panel-primary">
+							<div class="panel-body tabs-menu-body p-0">
+								<div class="tab-content">
+									<div class="tab-pane active">
+										<div class="py-3 w-100 form-group">
+											<label hidden for="cellphone"></label>
+											<input name="cellphone"
+												   id="cellphone"
+												   required
+												   autocomplete="phone-number"
+												   class="form-control"
+												   type="tel"
+												   value="{% if cellphone %}{{ cellphone.0 }}{% endif %}"
+												   placeholder="phone number">
+										</div>
+										
+										<div class="wrap-input100 validate-input input-group" id="Password-toggle">
+											<a href="javascript:void(0)"
+											   style="border-radius: 4px 0 0 4px;"
+											   class="input-group-text bg-white text-muted">
+												<i class="zmdi zmdi-eye text-muted" aria-hidden="true"></i>
+											</a>
+											<label hidden for="password"></label>
+											<input class="input100 border-start-0 form-control ms-0"
+												   autocomplete="phone-number"
+												   type="password"
+												   name="password"
+												   id="password"
+												   required
+												   value="{% if password %}{{ password.0 }}{% endif %}"
+												   placeholder="Password">
+										</div>
+										<div class="text-center">
+											<p>
+												لطفا شماره‌ی تلفن همراه خود را با
+												<span class="text-danger text-nowrap">کد کشور</span>
+												وارد کنید
+											</p>
+										</div>
+										<div class="container-login100-form-btn">
+											<button type="submit" class="btn login100-form-btn btn-primary fs-1">
+												ثبت
+											</button>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					
+					</form>
+				</div>
+			</div>
+			<!-- CONTAINER CLOSED -->
+		</div>
+	</div>
+	<!-- End PAGE -->
+
+</div>
+<!-- BACKGROUND-IMAGE CLOSED -->
+
+
+<!-- CONTAINER CLOSED -->
+{% endblock %}
+

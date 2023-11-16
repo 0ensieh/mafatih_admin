@@ -1,0 +1,2127 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load jformat %}
+{% block title %}ویرایس یا ساخت مانیتور{% endblock %}
+{% block css %}
+    <style>
+        /* for JQuery form validator error labels */
+        label.error {
+            color: rgba(255, 0, 0, 0.82);
+            font-size: 11px;
+            cursor: pointer;
+            position: absolute;
+            z-index: 8;
+            left: 0;
+            bottom: calc(100% - 6px);
+        }
+
+        .dark-mode input.form-control.error,
+        .dark-mode select.form-select.error,
+        * input.form-control.error, * input.error,
+        * select.form-select.error, * select.error {
+            border: 1px solid #ff00006b !important;
+        }
+
+        div.card#http,
+        div.card#icmp {
+            display: none;
+        }
+    </style>
+{% endblock %}
+
+{% block js %}
+    <script>
+        // for the data-table and the cronjob form
+        {% if monitor and label and data and min and max %}
+        // data for lineChart
+        let data = {{ data|safe }};
+        let label = {{ label|safe }};
+        let min = {{ min|safe }};
+        let max = {{ max|safe }};
+        {% endif %}
+
+
+        // AUTO COMPLETE THE CRON JOB SECTION
+        function select_common_option(ids, event) {
+            let input_ids = ids;
+            let select_ids = ids.map((item) => item + "_select");
+            let values = event.target.value.split(" ");
+            console.log(event.target.id);
+            document.getElementById(event.target.id.replace("_select", "")).value = event.target.value;
+            for (let i = 0; i < values.length; i++) {
+                document.getElementById(select_ids[i]).value = values[i];
+                document.getElementById(input_ids[i]).value = values[i];
+            }
+        }
+
+        function select_single_option(input_id, event) {
+            let cron_input = document.getElementById(input_id);
+            cron_input.value = event.target.value;
+        }
+        // END AUTO COMPLETE THE CRON JOB SECTION
+    </script>
+
+    <!-- JQUERY FORM VALIDATOR -->
+    <script type="text/javascript"
+            src="{% static 'assets/plugins/jquery-form-validator/jquery.validate.js' %}"></script>
+
+    <!-- JQUERY FORM VALIDATOR FA -->
+    <script type="text/javascript"
+            src="{% static 'assets/plugins/jquery-form-validator/localization/messages_fa.js' %}"></script>
+
+    {% if monitor and label and data and min and max %}
+        <!-- CHARTJS JS -->
+        <script src="{% static 'assets/plugins/chart/Chart.bundle.js' %}"></script>
+
+        <!-- CUSTOM LINE CHART EXTRACTED -->
+        <script src="{% static 'assets/js/line_chart/line_chart.js' %}"></script>
+    {% endif %}
+
+    <script>
+        $(document).ready(function () {
+            let http_test_btn = $("#http_test");
+            let icmp_test_btn = document.getElementById('icmp_test');
+            const protocol_dropdown = document.getElementById("protocol");
+            let domain = document.getElementById("domain");
+
+
+            if (protocol_dropdown.value === "1" || protocol_dropdown.value === '2')
+                show_http();
+            else if (protocol_dropdown.value === "3")
+                show_icmp();
+
+
+            // Change default message in jquery form validator
+            $.extend($.validator.messages, {
+                required: ""
+            });
+
+            // This method check the domain name correction
+            $.validator.addMethod('only_domain', function (value, element, element_name) {
+                if (domain.value.startsWith("https") || domain.value.startsWith("http") || domain.value.includes("icmp") || domain.value.includes(":") || domain.value.includes("/") || domain.value.endsWith("/"))
+                    return false;
+                return true;
+            }, '');
+
+            // This method check min and max value of cronjob field
+            $.validator.addMethod('cron', function (value, element, min_max_arr) {
+                function check_min_max(separator) {
+                    let values_list = value.split(separator);
+                    values_list = values_list.filter((item) => {
+                        if (item !== "")
+                            return item;
+                    });
+
+                    // check for duplicate item in values_list
+                    let values_list_set = new Set(values_list);
+                    if (values_list_set.size !== values_list.length)
+                        return false;
+
+                    // check for existing at-least two items for the cron job, except "*/" separator
+                    if (separator === "*/" && values_list_set.size < 1)
+                        return false;
+                    else if (separator !== "*/" && values_list_set.size < 2)
+                        return false;
+
+                    try {
+                        values_list = values_list.map((item) => Number(item));
+                        if (separator !== "*/")
+                            if (values_list[0] >= values_list[1])
+                                return false;
+                    } catch (e) {
+                        return false;
+                    }
+
+                    for (const v of values_list)
+                        if (isNaN(v)) {
+                            return false;
+                        } else if (!(v <= min_max_arr[1] && v >= min_max_arr[0])) {
+                            return false;
+                        }
+                    return true;
+                }
+
+                if (value.includes(" "))
+                    return false;
+                value = value.replaceAll(" ", "");
+                if (value.includes(","))
+                    return check_min_max(",");
+                else if (value.includes("-"))
+                    return check_min_max("-");
+                else if (value === "*")
+                    return true;
+                else if (value.includes("*/"))
+                    return check_min_max("*/");
+                else {
+                    if (value.startsWith("0"))
+                        return false;
+                    try {
+                        value = Number(value);
+                        return value <= min_max_arr[1] && value >= min_max_arr[0];
+                    } catch (e) {
+                        return false;
+                    }
+                }
+            }, '');
+
+            // validate the form
+            $("form[name='monitor']").validate({
+                /* errorPlacement: function(error, element) {
+                    // Append the error label to the input's parent element
+                    error.appendTo(element.parent());
+
+                    // Apply the error label styles
+                    error.addClass("error");
+
+                    // Set the left position of the error label to match the left position of the input element
+                    error.css("left", element.position().left);
+                    console.log(element.position().top);
+                    error.css("bottom", element.position().top + 30);
+                },
+                */
+                rules: {
+                    name: "required",
+                    domain: {
+                        only_domain: true,
+                        required: true
+                    },
+                    port: {
+                        number: true,
+                        min: 1,
+                        max: 65535
+                    },
+                    minute: {
+                        required: true,
+                        cron: [0, 59]
+                    },
+                    hour: {
+                        required: true,
+                        cron: [0, 23]
+                    },
+                    day: {
+                        required: true,
+                        cron: [1, 31]
+                    },
+                    month: {
+                        required: true,
+                        cron: [1, 12]
+                    },
+                    week: {
+                        required: true,
+                        cron: [0, 6]
+                    }
+                },
+                messages: {
+                    port: {
+                        minlength: "",
+                        maxlength: ""
+                    }
+                }
+            });
+
+            // ICMP, HTTP AND HTTPS CHANGE FORM
+
+            function show_icmp() {
+                document.getElementById("://").style.display = "none";
+                document.getElementById(":").style.display = "none";
+                document.getElementById("/").style.display = "none";
+                document.getElementById("port").style.display = "none";
+                document.getElementById("path").style.display = "none";
+                document.getElementById("http").style.display = "none";
+                // show icmp card
+                document.getElementById("icmp").style.display = "flex";
+                domain.placeholder = "IP or domain";
+            }
+
+            function show_http() {
+                document.getElementById("://").style.display = "unset";
+                document.getElementById(":").style.display = "unset";
+                document.getElementById("/").style.display = "unset";
+                document.getElementById("port").style.display = "unset";
+                document.getElementById("path").style.display = "unset";
+                document.getElementById("icmp").style.display = "none";
+
+                // http card
+                document.getElementById("http").style.display = "flex";
+                domain.placeholder = "example.com";
+            }
+
+
+            http_test_btn.click(function() {
+                let protocol = Number(protocol_dropdown.value);
+                if (protocol === 2)
+                    protocol = "https";
+                else
+                    protocol = "http";
+                send_test_request(protocol);
+            });
+
+            icmp_test_btn.addEventListener("click", function () {
+                let protocol = Number(protocol_dropdown.value);
+                send_test_request(protocol);
+            });
+
+            function send_test_request(protocol) {
+                $.ajax({
+                    type: "GET",
+                    url: "{% url 'monitor:check_response' %}",
+                    data: {
+                        "protocol": protocol,
+                        "domain": document.getElementById("domain").value,
+                        "port": document.getElementById("port").value,
+                        "path": document.getElementById("path").value
+                    },
+                    error: function (response) {
+                        console.log(response);
+                    },
+                    success: function (response) {
+                        if (protocol === 1 || protocol === 2 || protocol === 'http' || protocol === 'https') {
+                            document.getElementById("http-code").innerHTML = response["http_code"];
+                            document.getElementById("time-total").innerHTML = response["time_total"];
+                            document.getElementById("time-namelookup").innerHTML = response["time_namelookup"];
+                            document.getElementById("time-connect").innerHTML = response["time_connect"];
+                            document.getElementById("time-appconnect").innerHTML = response["time_appconnect"];
+                            document.getElementById("time-pretransfer").innerHTML = response["time_pretransfer"];
+                            document.getElementById("time-redirect").innerHTML = response["time_redirect"];
+                            document.getElementById("time-starttransfer").innerHTML = response["time_starttransfer"];
+                        } else if (protocol === 3 || protocol === 'icmp') {
+                            document.getElementById("header").innerHTML = response["header"];
+                            document.getElementById("result").innerHTML = response["result"];
+                            document.getElementById("packet_lost_percentage").innerHTML = response["packet_lost_percentage"];
+                            document.getElementById("min").innerHTML = response["min"];
+                            document.getElementById("max").innerHTML = response["max"];
+                            document.getElementById("avg").innerHTML = response["avg"];
+                            document.getElementById("mdev").innerHTML = response["mdev"];
+                            document.getElementById("times").innerHTML = response["times"];
+                        }
+                    }
+                });
+            }
+
+            protocol_dropdown.addEventListener("change", () => {
+                let protocol = Number(protocol_dropdown.value);
+                if (protocol === 1 || protocol === 2)
+                    show_http();
+                else if (protocol === 3)
+                    show_icmp();
+            });
+            // END ICMP, HTTP AND HTTPS CHANGE FORM
+            
+            // SHOW MESSAGES
+            {% if messages %}
+                {% for message in messages %}
+                    Toastify({
+                        text: "{{ message }}",
+                        duration: 3000,
+                        newWindow: true,
+                        close: true,
+                        gravity: 'top', // `top` or `bottom`
+                        position: 'center', // `left`, `center` or `right`
+                        stopOnFocus: true, // Prevents dismissing of toast on hover
+                        style: {
+                            background: 'rgb(108,95,252)',
+                        },
+                        onClick: function () {
+                        } // Callback after click
+                    }).showToast();
+                {% endfor %}
+            {% endif %}
+            // END SHOW MESSAGES
+
+            // DELETE AND ADD MONITOR WORKS
+            let monitor_work_area_exists = document.getElementById("monitor_work_area_exists");
+            let monitor_works = document.getElementsByClassName("monitor_work_area");
+            for (const mw of monitor_works) {
+                mw.addEventListener("click", (event) => {
+                    let target = event.target.closest("button[name='delete']");
+                    if (target)
+                        monitor_work_area_exists.removeChild(target.parentElement.parentElement)
+                });
+            }
+
+
+            let work_item = document.querySelector("template").innerHTML;
+
+            let monitor_work_area = document.getElementById("monitor_work_area");
+            document.getElementById("new_monitor_work").addEventListener("click", () => {
+                let work_item_node = document.createElement("div");
+                work_item_node.innerHTML = work_item;
+                monitor_work_area.appendChild(work_item_node.firstElementChild);
+            });
+
+            monitor_work_area.addEventListener("click", (event) => {
+                let target = event.target.closest("button[name='delete']");
+                if (target)
+                    monitor_work_area.removeChild(target.parentElement.parentElement);
+            });
+            // END DELETE AND ADD MONITOR WORKS
+        });
+    </script>
+{% endblock %}
+{% block body_class %}rtl{% endblock %}
+{% block body %}
+    <template>
+        <div class="form-group mt-5 p-2" dir="ltr" style="border: 1px solid rgba(255, 255, 255, 0.1)">
+            <div class="form-group d-flex justify-content-between">
+                <label hidden="" for="status_code"></label>
+                <select class="form-select col-3 mx-1"
+                        name="status_code"
+                        aria-label="Default select example"
+                        required
+                        id="status_code">
+                    <option value="">status code</option>
+                    <optgroup label="1xx">
+                        <option value="100">100</option>
+                        <option value="101">101</option>
+                        <option value="102">102</option>
+                        <option value="103">103</option>
+                    </optgroup>
+                    <optgroup label="2xx">
+                        <option value="200">200</option>
+                        <option value="201">201</option>
+                        <option value="202">202</option>
+                        <option value="203">203</option>
+                        <option value="204">204</option>
+                        <option value="205">205</option>
+                        <option value="206">206</option>
+                        <option value="207">207</option>
+                        <option value="208">208</option>
+                        <option value="226">226</option>
+                    </optgroup>
+                    <optgroup label="3xx">
+                        <option value="300">300</option>
+                        <option value="301">301</option>
+                        <option value="302">302</option>
+                        <option value="303">303</option>
+                        <option value="304">304</option>
+                        <option value="305">305</option>
+                        <option value="306">306</option>
+                        <option value="307">307</option>
+                        <option value="308">308</option>
+                    </optgroup>
+                    <optgroup label="4xx">
+                        <option value="400">400</option>
+                        <option value="401">401</option>
+                        <option value="402">402</option>
+                        <option value="403">403</option>
+                        <option value="404">404</option>
+                        <option value="405">405</option>
+                        <option value="406">406</option>
+                        <option value="407">407</option>
+                        <option value="408">408</option>
+                        <option value="409">409</option>
+                        <option value="410">410</option>
+                        <option value="411">411</option>
+                        <option value="412">412</option>
+                        <option value="413">413</option>
+                        <option value="414">414</option>
+                        <option value="415">415</option>
+                        <option value="416">416</option>
+                        <option value="417">417</option>
+                        <option value="418">418</option>
+                        <option value="421">421</option>
+                        <option value="422">422</option>
+                        <option value="423">423</option>
+                        <option value="424">424</option>
+                        <option value="425">425</option>
+                        <option value="426">426</option>
+                        <option value="428">428</option>
+                        <option value="429">429</option>
+                        <option value="431">431</option>
+                        <option value="444">444</option>
+                        <option value="451">451</option>
+                        <option value="499">499</option>
+                    </optgroup>
+                    <optgroup label="5xx">
+                        <option value="500">500</option>
+                        <option value="501">501</option>
+                        <option value="502">502</option>
+                        <option value="503">503</option>
+                        <option value="504">504</option>
+                        <option value="505">505</option>
+                        <option value="506">506</option>
+                        <option value="507">507</option>
+                        <option value="508">508</option>
+                        <option value="510">510</option>
+                        <option value="511">511</option>
+                        <option value="599">599</option>
+                    </optgroup>
+                </select>
+
+                <label hidden="" for="max_time"></label>
+                <input class="form-control mx-1 col-3 text-end"
+                       type="number"
+                       name="max_time"
+                       min="1"
+                       required
+                       placeholder="max_time"
+                       id="max_time">
+
+                <label hidden="" for="method"></label>
+                <select class="form-select col-3"
+                        name="method"
+                        id="method">
+                    <option value="">method</option>
+                    <option value="1">SMS</option>
+                    <option value="2">EMAIL</option>
+                    <option value="3">TELEGRAM</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label hidden="" for="phones"></label>
+                <textarea class="form-control text-code"
+                          name="phones"
+                          id="phones"
+                          cols="30"
+                          required
+                          placeholder="09109999999 09129999999 09389999999"
+                          rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <button name="delete" type="button" class="btn btn-danger btn-sm px-4">
+                    <i class="fa fa-minus"></i>
+                </button>
+            </div>
+        </div>
+    </template>
+
+    <!-- GLOBAL-LOADER -->
+    {% comment %}{% include 'loader.html' %}{% endcomment %}
+    <!-- /GLOBAL-LOADER -->
+
+    <!-- app-Header -->
+    {% include 'header.html' %}
+    <!-- /app-Header -->
+
+    <!--APP-SIDEBAR-->
+    {% include 'menu.html' %}
+
+    <!--app-content open-->
+    <div class="main-content app-content mt-0">
+        <div class="side-app">
+            <!-- CONTAINER -->
+            <div class="main-container container-fluid">
+                <!-- PAGE-HEADER OPTIONAL TO WRITE SOME DATA ABOUT request.user -->
+                <div class="page-header">
+                    <div class="w-100 d-flex justify-content-between">
+                        <div class="d-flex">
+                            <h1 class="page-title px-2">
+                                {% if request.META.HTTP_REFERER %}
+                                    <a href="{{ request.META.HTTP_REFERER }}">
+                                        <i class="fa fa-arrow-right"></i>
+                                        <span class="d-none d-sm-none d-md-inline-block">برگشت</span>
+                                    </a>
+                                {% endif %}
+                            </h1>
+                            <div class="d-none d-sm-none d-md-block">
+                                <h1 class="page-title px-2">ساخت یا ویرایش مانیتور</h1>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <ol class="breadcrumb mx-2">
+                                <li class="breadcrumb-item active" aria-current="page">ساخت یا ویرایش مانیتور</li>
+                                <li class="breadcrumb-item">
+                                    <a href="{% url 'monitor:monitor_list' %}">لیست مانیتور‌ها</a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a href="{% url 'dashboard' %}">خانه</a>
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+                <!-- PAGE-HEADER END -->
+
+                <!-- write your code here -->
+                <div class="row">
+                    <div class="col-12">
+                        
+                        <!-- MONITOR DETAILS -->
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between">
+                                <h4 class="card-title">
+                                    ساخت یا ویرایش مانیتور
+                                </h4>
+                                {% if monitor.monitorwork_set %}
+                                    <a class="btn btn-primary-light"
+                                       href="{% url 'monitor:work:work_list' monitor.id %}">
+                                        لیست دستورات
+                                    </a>
+                                {% endif %}
+                            </div>
+                            <div class="card-body">
+                                <form name="monitor" method="post">
+                                    {% csrf_token %}
+                                    <div class="mb-5">
+                                        <div class="form-group mb-5 position-relative">
+                                            <label for="monitor_name" class="d-inline-block form-label mt-0">
+                                                نام مانیتور
+                                                <span class="text-red">*</span>
+                                            </label>
+                                            <input type="text"
+                                                   class="form-control"
+                                                   id="monitor_name"
+                                                   name="name"
+                                                   required
+                                                   value="{% if monitor %}{{ monitor.name }}{% endif %}"
+                                                   placeholder="مثلا سایت دیجیکالا">
+                                        </div>
+
+                                        <!-- display >= d-sm -->
+                                        <div class="" dir="ltr">
+                                            <div class="form-group d-flex flex-column flex-sm-row position-relative">
+                                                <select class="form-select col-12 col-sm-2 mx-1 my-2 my-sm-0 text-center p-sm-0"
+                                                        aria-label="Default select example"
+                                                        required
+                                                        id="protocol"
+                                                        name="protocol">
+                                                    <option value="2" {% if monitor.protocol == 2 %}selected{% endif %}>
+                                                        HTTPS
+                                                    </option>
+                                                    <option value="1" {% if monitor.protocol == 1 %}selected{% endif %}>
+                                                        HTTP
+                                                    </option>
+                                                    <option value="3" {% if monitor.protocol == 3 %}selected{% endif %}>
+                                                        ICMP
+                                                    </option>
+                                                </select>
+
+                                                <label hidden="" for="://"></label>
+                                                <input type="text"
+                                                       id="://"
+                                                       disabled
+                                                       class="form-control mx-1 mx-sm-0 my-2 my-sm-0 col-12 col-sm-1 text-center p-sm-0"
+                                                       value="://"
+                                                       readonly>
+
+                                                <label hidden for="domain"></label>
+                                                <input type="text"
+                                                       dir="ltr"
+                                                       class="form-control me-1"
+                                                       required
+                                                       id="domain"
+                                                       name="domain"
+                                                       value="{% if monitor %}{{ monitor.domain }}{% endif %}"
+                                                       placeholder="example.com">
+                                            </div>
+                                            <div class="form-group d-flex flex-column flex-sm-row position-relative">
+                                                <label hidden="" for=":"></label>
+                                                <input type="text"
+                                                       id=":"
+                                                       disabled
+                                                       class="form-control my-2 my-sm-0 mx-1 mx-sm-0 col-12 col-sm-1 text-center p-sm-0"
+                                                       value=":"
+                                                       readonly>
+
+
+                                                <label hidden="" for="port"></label>
+                                                <input type="text"
+                                                       class="form-control text-center mx-1 col-12 col-sm-3 p-sm-0"
+                                                       min="1"
+                                                       dir="ltr"
+                                                       max="65535"
+                                                       name="port"
+                                                       value="{% if monitor %}{{ monitor.port }}{% endif %}"
+                                                       id="port"
+                                                       placeholder="port">
+
+
+                                                <label hidden="" for="/"></label>
+                                                <input type="text"
+                                                       id="/"
+                                                       disabled
+                                                       class="form-control my-2 my-sm-0 mx-1 mx-sm-0 col-12 col-sm-1 text-center p-sm-0"
+                                                       value="/"
+                                                       readonly>
+
+
+                                                <label hidden="" for="path"></label>
+                                                <input type="text"
+                                                       class="form-control me-1"
+                                                       name="path"
+                                                       value="{% if monitor %}{{ monitor.path }}{% endif %}"
+                                                       dir="ltr"
+                                                       id="path"
+                                                       placeholder="you/custom/path/">
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row border-top">
+                                        <div class="col-12" id="monitor_work_area_exists">
+                                            {% for mw in monitor_works %}
+                                                <div class="form-group mt-5 p-2 monitor_work_area" dir="ltr"
+                                                     style="border: 1px solid rgba(255, 255, 255, 0.1)">
+                                                    <div class="form-group d-flex justify-content-between">
+                                                        <label hidden="" for="status_code"></label>
+                                                        <select class="form-select col-3 mx-1"
+                                                                name="status_code_exist"
+                                                                aria-label="Default select example"
+                                                                required
+                                                                id="status_code">
+                                                            <option value="">status code</option>
+                                                            <optgroup label="1xx">
+                                                                <option value="100"
+                                                                        {% if mw.status_code == "100" %}selected{% endif %}>
+                                                                    100
+                                                                </option>
+                                                                <option value="101"
+                                                                        {% if mw.status_code == "101" %}selected{% endif %}>
+                                                                    101
+                                                                </option>
+                                                                <option value="102"
+                                                                        {% if mw.status_code == "102" %}selected{% endif %}>
+                                                                    102
+                                                                </option>
+                                                                <option value="103"
+                                                                        {% if mw.status_code == "103" %}selected{% endif %}>
+                                                                    103
+                                                                </option>
+                                                            </optgroup>
+                                                            <optgroup label="2xx">
+                                                                <option value="200"
+                                                                        {% if mw.status_code == "200" %}selected{% endif %}>
+                                                                    200
+                                                                </option>
+                                                                <option value="201"
+                                                                        {% if mw.status_code == "201" %}selected{% endif %}>
+                                                                    201
+                                                                </option>
+                                                                <option value="202"
+                                                                        {% if mw.status_code == "202" %}selected{% endif %}>
+                                                                    202
+                                                                </option>
+                                                                <option value="203"
+                                                                        {% if mw.status_code == "203" %}selected{% endif %}>
+                                                                    203
+                                                                </option>
+                                                                <option value="204"
+                                                                        {% if mw.status_code == "204" %}selected{% endif %}>
+                                                                    204
+                                                                </option>
+                                                                <option value="205"
+                                                                        {% if mw.status_code == "205" %}selected{% endif %}>
+                                                                    205
+                                                                </option>
+                                                                <option value="206"
+                                                                        {% if mw.status_code == "206" %}selected{% endif %}>
+                                                                    206
+                                                                </option>
+                                                                <option value="207"
+                                                                        {% if mw.status_code == "207" %}selected{% endif %}>
+                                                                    207
+                                                                </option>
+                                                                <option value="208"
+                                                                        {% if mw.status_code == "208" %}selected{% endif %}>
+                                                                    208
+                                                                </option>
+                                                                <option value="226"
+                                                                        {% if mw.status_code == "226" %}selected{% endif %}>
+                                                                    226
+                                                                </option>
+                                                            </optgroup>
+                                                            <optgroup label="3xx">
+                                                                <option value="300"
+                                                                        {% if mw.status_code == "300" %}selected{% endif %}>
+                                                                    300
+                                                                </option>
+                                                                <option value="301"
+                                                                        {% if mw.status_code == "301" %}selected{% endif %}>
+                                                                    301
+                                                                </option>
+                                                                <option value="302"
+                                                                        {% if mw.status_code == "302" %}selected{% endif %}>
+                                                                    302
+                                                                </option>
+                                                                <option value="303"
+                                                                        {% if mw.status_code == "303" %}selected{% endif %}>
+                                                                    303
+                                                                </option>
+                                                                <option value="304"
+                                                                        {% if mw.status_code == "304" %}selected{% endif %}>
+                                                                    304
+                                                                </option>
+                                                                <option value="305"
+                                                                        {% if mw.status_code == "305" %}selected{% endif %}>
+                                                                    305
+                                                                </option>
+                                                                <option value="306"
+                                                                        {% if mw.status_code == "306" %}selected{% endif %}>
+                                                                    306
+                                                                </option>
+                                                                <option value="307"
+                                                                        {% if mw.status_code == "307" %}selected{% endif %}>
+                                                                    307
+                                                                </option>
+                                                                <option value="308"
+                                                                        {% if mw.status_code == "308" %}selected{% endif %}>
+                                                                    308
+                                                                </option>
+                                                            </optgroup>
+                                                            <optgroup label="4xx">
+                                                                <option value="400"
+                                                                        {% if mw.status_code == "400" %}selected{% endif %}>
+                                                                    400
+                                                                </option>
+                                                                <option value="401"
+                                                                        {% if mw.status_code == "401" %}selected{% endif %}>
+                                                                    401
+                                                                </option>
+                                                                <option value="402"
+                                                                        {% if mw.status_code == "402" %}selected{% endif %}>
+                                                                    402
+                                                                </option>
+                                                                <option value="403"
+                                                                        {% if mw.status_code == "403" %}selected{% endif %}>
+                                                                    403
+                                                                </option>
+                                                                <option value="404"
+                                                                        {% if mw.status_code == "404" %}selected{% endif %}>
+                                                                    404
+                                                                </option>
+                                                                <option value="405"
+                                                                        {% if mw.status_code == "405" %}selected{% endif %}>
+                                                                    405
+                                                                </option>
+                                                                <option value="406"
+                                                                        {% if mw.status_code == "406" %}selected{% endif %}>
+                                                                    406
+                                                                </option>
+                                                                <option value="407"
+                                                                        {% if mw.status_code == "407" %}selected{% endif %}>
+                                                                    407
+                                                                </option>
+                                                                <option value="408"
+                                                                        {% if mw.status_code == "408" %}selected{% endif %}>
+                                                                    408
+                                                                </option>
+                                                                <option value="409"
+                                                                        {% if mw.status_code == "409" %}selected{% endif %}>
+                                                                    409
+                                                                </option>
+                                                                <option value="410"
+                                                                        {% if mw.status_code == "410" %}selected{% endif %}>
+                                                                    410
+                                                                </option>
+                                                                <option value="411"
+                                                                        {% if mw.status_code == "411" %}selected{% endif %}>
+                                                                    411
+                                                                </option>
+                                                                <option value="412"
+                                                                        {% if mw.status_code == "412" %}selected{% endif %}>
+                                                                    412
+                                                                </option>
+                                                                <option value="413"
+                                                                        {% if mw.status_code == "413" %}selected{% endif %}>
+                                                                    413
+                                                                </option>
+                                                                <option value="414"
+                                                                        {% if mw.status_code == "414" %}selected{% endif %}>
+                                                                    414
+                                                                </option>
+                                                                <option value="415"
+                                                                        {% if mw.status_code == "415" %}selected{% endif %}>
+                                                                    415
+                                                                </option>
+                                                                <option value="416"
+                                                                        {% if mw.status_code == "416" %}selected{% endif %}>
+                                                                    416
+                                                                </option>
+                                                                <option value="417"
+                                                                        {% if mw.status_code == "417" %}selected{% endif %}>
+                                                                    417
+                                                                </option>
+                                                                <option value="418"
+                                                                        {% if mw.status_code == "418" %}selected{% endif %}>
+                                                                    418
+                                                                </option>
+                                                                <option value="421"
+                                                                        {% if mw.status_code == "421" %}selected{% endif %}>
+                                                                    421
+                                                                </option>
+                                                                <option value="422"
+                                                                        {% if mw.status_code == "422" %}selected{% endif %}>
+                                                                    422
+                                                                </option>
+                                                                <option value="423"
+                                                                        {% if mw.status_code == "423" %}selected{% endif %}>
+                                                                    423
+                                                                </option>
+                                                                <option value="424"
+                                                                        {% if mw.status_code == "424" %}selected{% endif %}>
+                                                                    424
+                                                                </option>
+                                                                <option value="425"
+                                                                        {% if mw.status_code == "425" %}selected{% endif %}>
+                                                                    425
+                                                                </option>
+                                                                <option value="426"
+                                                                        {% if mw.status_code == "426" %}selected{% endif %}>
+                                                                    426
+                                                                </option>
+                                                                <option value="428"
+                                                                        {% if mw.status_code == "428" %}selected{% endif %}>
+                                                                    428
+                                                                </option>
+                                                                <option value="429"
+                                                                        {% if mw.status_code == "429" %}selected{% endif %}>
+                                                                    429
+                                                                </option>
+                                                                <option value="431"
+                                                                        {% if mw.status_code == "431" %}selected{% endif %}>
+                                                                    431
+                                                                </option>
+                                                                <option value="444"
+                                                                        {% if mw.status_code == "444" %}selected{% endif %}>
+                                                                    444
+                                                                </option>
+                                                                <option value="451"
+                                                                        {% if mw.status_code == "451" %}selected{% endif %}>
+                                                                    451
+                                                                </option>
+                                                                <option value="499"
+                                                                        {% if mw.status_code == "499" %}selected{% endif %}>
+                                                                    499
+                                                                </option>
+                                                            </optgroup>
+                                                            <optgroup label="5xx">
+                                                                <option value="500"
+                                                                        {% if mw.status_code == "500" %}selected{% endif %}>
+                                                                    500
+                                                                </option>
+                                                                <option value="501"
+                                                                        {% if mw.status_code == "501" %}selected{% endif %}>
+                                                                    501
+                                                                </option>
+                                                                <option value="502"
+                                                                        {% if mw.status_code == "502" %}selected{% endif %}>
+                                                                    502
+                                                                </option>
+                                                                <option value="503"
+                                                                        {% if mw.status_code == "503" %}selected{% endif %}>
+                                                                    503
+                                                                </option>
+                                                                <option value="504"
+                                                                        {% if mw.status_code == "504" %}selected{% endif %}>
+                                                                    504
+                                                                </option>
+                                                                <option value="505"
+                                                                        {% if mw.status_code == "505" %}selected{% endif %}>
+                                                                    505
+                                                                </option>
+                                                                <option value="506"
+                                                                        {% if mw.status_code == "506" %}selected{% endif %}>
+                                                                    506
+                                                                </option>
+                                                                <option value="507"
+                                                                        {% if mw.status_code == "507" %}selected{% endif %}>
+                                                                    507
+                                                                </option>
+                                                                <option value="508"
+                                                                        {% if mw.status_code == "508" %}selected{% endif %}>
+                                                                    508
+                                                                </option>
+                                                                <option value="510"
+                                                                        {% if mw.status_code == "510" %}selected{% endif %}>
+                                                                    510
+                                                                </option>
+                                                                <option value="511"
+                                                                        {% if mw.status_code == "511" %}selected{% endif %}>
+                                                                    511
+                                                                </option>
+                                                                <option value="599"
+                                                                        {% if mw.status_code == "599" %}selected{% endif %}>
+                                                                    599
+                                                                </option>
+                                                            </optgroup>
+                                                        </select>
+
+                                                        <label hidden="" for="max_time_exist"></label>
+                                                        <input class="form-control mx-1 col-3 text-end"
+                                                               type="number"
+                                                               name="max_time_exist"
+                                                               min="1"
+                                                               required
+                                                               value="{{ mw.max_time }}"
+                                                               placeholder="max_time"
+                                                               id="max_time_exist">
+
+
+                                                        <label hidden for="monitor_work_id_exist"></label>
+                                                        <input hidden=""
+                                                               value="{{ mw.id }}"
+                                                               type="text"
+                                                               name="monitor_work_id_exist"
+                                                               id="monitor_work_id_exist"
+                                                               class="">
+
+                                                        <label hidden="" for="method_exist"></label>
+                                                        <select class="form-select col-3"
+                                                                name="method_exist"
+                                                                required
+                                                                id="method_exist">
+                                                            <option value="">method</option>
+                                                            <option value="1"
+                                                                    {% if mw.method == 1 %}selected{% endif %}>SMS
+                                                            </option>
+                                                            <option value="2"
+                                                                    {% if mw.method == 2 %}selected{% endif %}>EMAIL
+                                                            </option>
+                                                            <option value="3"
+                                                                    {% if mw.method == 3 %}selected{% endif %}>TELEGRAM
+                                                            </option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label hidden="" for="phones_exist"></label>
+                                                        <textarea class="form-control text-code"
+                                                                  name="phones_exist"
+                                                                  id="phones_exist"
+                                                                  cols="30"
+                                                                  required
+                                                                  placeholder="09109999999 09129999999 09389999999"
+                                                                  rows="3">{{ mw.phones }}</textarea>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <button name="delete" type="button"
+                                                                class="btn btn-danger btn-sm px-4">
+                                                            <i class="fa fa-minus"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <a class="btn btn-sm btn-info my-4" id="new_monitor_work">ساخت دستور</a>
+                                        </div>
+                                        <div id="monitor_work_area" class="col-12"></div>
+                                    </div>
+                                    
+                                    <div class="row border-top pt-4">
+                                        <div class="col-12">
+                                            <div class="col-12">
+                                                <h5 class="mb-4">
+                                                    فقط فیلدها با
+                                                    <span class="text-purple">
+                                                        پس‌زمنه‌ی بنفش
+                                                    </span>
+                                                    اجباری هستند؛ حتما آن‌ها را پر کنید.
+                                                </h5>
+                                                <p>
+                                                    <strong class="d-block">توضیحات</strong>
+                                                    <span class="d-block">
+                                                        ۱- کران‌جاب نباید شامل فاصله باشد
+                                                    </span>
+                                                    <span class="d-block">
+                                                        ۲- کران‌جاب نباید شامل کاراکترهای غیر عددی باشد
+                                                    </span>
+                                                    <span class="d-block">
+                                                        ۳- برای وارد کردن یک بازه، از
+                                                        <span class="text-danger text-monospace">-</span>
+                                                        استفاده کنید
+                                                    </span>
+                                                    <span class="d-block">
+                                                        ۴- برای وارد کردن چندین مقدار، از
+                                                        <span class="text-danger text-monospace">,</span>
+                                                        استفاده کنید
+                                                    </span>
+                                                    <a class="text-primary"
+                                                       target="_blank"
+                                                       href="https://cloud.google.com/scheduler/docs/configuring/cron-job-schedules"
+                                                    >
+                                                        لینک آموزش کران‌جاب
+                                                    </a>
+                                                </p>
+                                            </div>
+                                            <div class="d-flex flex-column" dir="ltr">
+
+                                                <div class="form-group d-flex justify-content-between">
+                                                    <div class="col-9 d-flex align-items-center justify-content-end">
+                                                        <label hidden="hidden" for="common_options_select"></label>
+                                                        <select id="common_options_select"
+                                                                name="common_options_select"
+                                                                onchange="select_common_option(['minute', 'hour', 'day', 'month', 'week'], event)"
+                                                                class="form-select">
+                                                            <option value="--">
+                                                                -- Common Settings --
+                                                            </option>
+                                                            <option value="* * * * *">
+                                                                Once Per Minute(* * * * *)
+                                                            </option>
+                                                            <option value="*/5 * * * *">
+                                                                Once Per Five Minutes(*/5 * * * *)
+                                                            </option>
+                                                            <option value="0,30 * * * *">
+                                                                Twice Per Hour(0,30 * * * *)
+                                                            </option>
+                                                            <option value="0 * * * *">
+                                                                Once Per Hour(0 * * * *)
+                                                            </option>
+                                                            <option value="0 0,12 * * *">
+                                                                Twice Per Day(0 0,12 * * *)
+                                                            </option>
+                                                            <option value="0 0 * * *">
+                                                                Once Per Day(0 0 * * *)
+                                                            </option>
+                                                            <option value="0 0 * * 0">
+                                                                Once Per Week(0 0 * * 0)
+                                                            </option>
+                                                            <option value="0 0 1,15 * *">
+                                                                On the 1st and 15th of the Month(0 0 1,15 * *)
+                                                            </option>
+                                                            <option value="0 0 1 * *">
+                                                                Once Per Month(0 0 1 * *)
+                                                            </option>
+                                                            <option value="0 0 1 1 *">
+                                                                Once Per Year(0 0 1 1 *)
+                                                            </option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-3">
+                                                        <label hidden="hidden" for="common_options"></label>
+                                                        <input type="text"
+                                                               class="form-control text-monospace"
+                                                               placeholder="کران‌های متداول"
+                                                               name="common_options"
+                                                               value="{% if monitor.cron %}{{ monitor.cron.value }}{% endif %}"
+                                                               id="common_options">
+                                                    </div>
+                                                </div>
+
+                                                <div class="form-group d-flex justify-content-between">
+                                                    <div class="col-9 d-flex align-items-center justify-content-end">
+                                                        <label for="minute_select"></label>
+                                                        <select id="minute_select"
+                                                                name="minute_select"
+                                                                class="form-select"
+                                                                onchange="select_single_option('minute', event)">
+                                                            <option value="">
+                                                                -- MINUTE --
+                                                            </option>
+                                                            <option value="*">
+                                                                Once Per Minute(*)
+                                                            </option>
+                                                            <option value="*/2">
+                                                                Once Per Two Minutes(*/2)
+                                                            </option>
+                                                            <option value="*/5">
+                                                                Once Per Five Minutes(*/5)
+                                                            </option>
+                                                            <option value="*/10">
+                                                                Once Per Ten Minutes(*/10)
+                                                            </option>
+                                                            <option value="*/15">
+                                                                Once Per Fifteen Minutes(*/15)
+                                                            </option>
+                                                            <option value="0,30">
+                                                                Once Per Thirty Minutes(0,30)
+                                                            </option>
+                                                            <option value="--">
+                                                                -- Minutes --
+                                                            </option>
+                                                            <option value="0">
+                                                                :00 (At the beginning of the hour.) (0)
+                                                            </option>
+                                                            <option value="1">
+                                                                :01 (1)
+                                                            </option>
+                                                            <option value="2">
+                                                                :02 (2)
+                                                            </option>
+                                                            <option value="3">
+                                                                :03 (3)
+                                                            </option>
+                                                            <option value="4">
+                                                                :04 (4)
+                                                            </option>
+                                                            <option value="5">
+                                                                :05 (5)
+                                                            </option>
+                                                            <option value="6">
+                                                                :06 (6)
+                                                            </option>
+                                                            <option value="7">
+                                                                :07 (7)
+                                                            </option>
+                                                            <option value="8">
+                                                                :08 (8)
+                                                            </option>
+                                                            <option value="9">
+                                                                :09 (9)
+                                                            </option>
+                                                            <option value="10">
+                                                                :10 (10)
+                                                            </option>
+                                                            <option value="11">
+                                                                :11 (11)
+                                                            </option>
+                                                            <option value="12">
+                                                                :12 (12)
+                                                            </option>
+                                                            <option value="13">
+                                                                :13 (13)
+                                                            </option>
+                                                            <option value="14">
+                                                                :14 (14)
+                                                            </option>
+                                                            <option value="15">
+                                                                :15 (At one quarter past the hour.) (15)
+                                                            </option>
+                                                            <option value="16">
+                                                                :16 (16)
+                                                            </option>
+                                                            <option value="17">
+                                                                :17 (17)
+                                                            </option>
+                                                            <option value="18">
+                                                                :18 (18)
+                                                            </option>
+                                                            <option value="19">
+                                                                :19 (19)
+                                                            </option>
+                                                            <option value="20">
+                                                                :20 (20)
+                                                            </option>
+                                                            <option value="21">
+                                                                :21 (21)
+                                                            </option>
+                                                            <option value="22">
+                                                                :22 (22)
+                                                            </option>
+                                                            <option value="23">
+                                                                :23 (23)
+                                                            </option>
+                                                            <option value="24">
+                                                                :24 (24)
+                                                            </option>
+                                                            <option value="25">
+                                                                :25 (25)
+                                                            </option>
+                                                            <option value="26">
+                                                                :26 (26)
+                                                            </option>
+                                                            <option value="27">
+                                                                :27 (27)
+                                                            </option>
+                                                            <option value="28">
+                                                                :28 (28)
+                                                            </option>
+                                                            <option value="29">
+                                                                :29 (29)
+                                                            </option>
+                                                            <option value="30">
+                                                                :30 (At half past the hour.) (30)
+                                                            </option>
+                                                            <option value="31">
+                                                                :31 (31)
+                                                            </option>
+                                                            <option value="32">
+                                                                :32 (32)
+                                                            </option>
+                                                            <option value="33">
+                                                                :33 (33)
+                                                            </option>
+                                                            <option value="34">
+                                                                :34 (34)
+                                                            </option>
+                                                            <option value="35">
+                                                                :35 (35)
+                                                            </option>
+                                                            <option value="36">
+                                                                :36 (36)
+                                                            </option>
+                                                            <option value="37">
+                                                                :37 (37)
+                                                            </option>
+                                                            <option value="38">
+                                                                :38 (38)
+                                                            </option>
+                                                            <option value="39">
+                                                                :39 (39)
+                                                            </option>
+                                                            <option value="40">
+                                                                :40 (40)
+                                                            </option>
+                                                            <option value="41">
+                                                                :41 (41)
+                                                            </option>
+                                                            <option value="42">
+                                                                :42 (42)
+                                                            </option>
+                                                            <option value="43">
+                                                                :43 (43)
+                                                            </option>
+                                                            <option value="44">
+                                                                :44 (44)
+                                                            </option>
+                                                            <option value="45">
+                                                                :45 (At one quarter until the hour.) (45)
+                                                            </option>
+                                                            <option value="46">
+                                                                :46 (46)
+                                                            </option>
+                                                            <option value="47">
+                                                                :47 (47)
+                                                            </option>
+                                                            <option value="48">
+                                                                :48 (48)
+                                                            </option>
+                                                            <option value="49">
+                                                                :49 (49)
+                                                            </option>
+                                                            <option value="50">
+                                                                :50 (50)
+                                                            </option>
+                                                            <option value="51">
+                                                                :51 (51)
+                                                            </option>
+                                                            <option value="52">
+                                                                :52 (52)
+                                                            </option>
+                                                            <option value="53">
+                                                                :53 (53)
+                                                            </option>
+                                                            <option value="54">
+                                                                :54 (54)
+                                                            </option>
+                                                            <option value="55">
+                                                                :55 (55)
+                                                            </option>
+                                                            <option value="56">
+                                                                :56 (56)
+                                                            </option>
+                                                            <option value="57">
+                                                                :57 (57)
+                                                            </option>
+                                                            <option value="58">
+                                                                :58 (58)
+                                                            </option>
+                                                            <option value="59">
+                                                                :59 (59)
+                                                            </option>
+                                                        </select>
+                                                        <label hidden class="m-0" for="minute">دقیقه</label>
+                                                    </div>
+                                                    <div class="col-3">
+                                                        <input type="text"
+                                                               class="form-control bg-purssianblue text-monospace"
+                                                               placeholder="دقیقه"
+                                                               required
+                                                               name="minute"
+                                                               value="{% if monitor.cron %}{{ monitor.get_cron_minute }}{% endif %}"
+                                                               id="minute">
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="form-group d-flex justify-content-between">
+                                                    <div class="col-9 d-flex align-items-center justify-content-end">
+                                                        <label for="hour_select"></label>
+                                                        <select id="hour_select"
+                                                                name="hour_select"
+                                                                class="form-select"
+                                                                onchange="select_single_option('hour', event)">
+                                                            <option value="">
+                                                                -- HOUR --
+                                                            </option>
+                                                            <option value="*">
+                                                                Every Hour
+                                                                (*)
+                                                            </option>
+                                                            <option value="*/2">
+                                                                Every Other Hour
+                                                                (*/2)
+                                                            </option>
+                                                            <option value="*/3">
+                                                                Every Third Hour
+                                                                (*/3)
+                                                            </option>
+                                                            <option value="*/4">
+                                                                Every Fourth Hour
+                                                                (*/4)
+                                                            </option>
+                                                            <option value="*/6">
+                                                                Every Sixth Hour
+                                                                (*/6)
+                                                            </option>
+                                                            <option value="0,12">
+                                                                Every Twelve Hours
+                                                                (0,12)
+                                                            </option>
+                                                            <option value="--">
+                                                                --
+                                                                Hours
+                                                                --
+                                                            </option>
+                                                            <option value="0">
+                                                                12:00 a.m.
+                                                                Midnight
+                                                                (0)
+                                                            </option>
+                                                            <option value="1">
+                                                                1:00 a.m. (1)
+                                                            </option>
+                                                            <option value="2">
+                                                                2:00 a.m. (2)
+                                                            </option>
+                                                            <option value="3">
+                                                                3:00 a.m. (3)
+                                                            </option>
+                                                            <option value="4">
+                                                                4:00 a.m. (4)
+                                                            </option>
+                                                            <option value="5">
+                                                                5:00 a.m. (5)
+                                                            </option>
+                                                            <option value="6">
+                                                                6:00 a.m. (6)
+                                                            </option>
+                                                            <option value="7">
+                                                                7:00 a.m. (7)
+                                                            </option>
+                                                            <option value="8">
+                                                                8:00 a.m. (8)
+                                                            </option>
+                                                            <option value="9">
+                                                                9:00 a.m. (9)
+                                                            </option>
+                                                            <option value="10">
+                                                                10:00 a.m. (10)
+                                                            </option>
+                                                            <option value="11">
+                                                                11:00 a.m. (11)
+                                                            </option>
+                                                            <option value="12">
+                                                                12:00 p.m.
+                                                                Noon
+                                                                (12)
+                                                            </option>
+                                                            <option value="13">
+                                                                1:00 p.m. (13)
+                                                            </option>
+                                                            <option value="14">
+                                                                2:00 p.m. (14)
+                                                            </option>
+                                                            <option value="15">
+                                                                3:00 p.m. (15)
+                                                            </option>
+                                                            <option value="16">
+                                                                4:00 p.m. (16)
+                                                            </option>
+                                                            <option value="17">
+                                                                5:00 p.m. (17)
+                                                            </option>
+                                                            <option value="18">
+                                                                6:00 p.m. (18)
+                                                            </option>
+                                                            <option value="19">
+                                                                7:00 p.m. (19)
+                                                            </option>
+                                                            <option value="20">
+                                                                8:00 p.m. (20)
+                                                            </option>
+                                                            <option value="21">
+                                                                9:00 p.m. (21)
+                                                            </option>
+                                                            <option value="22">
+                                                                10:00 p.m. (22)
+                                                            </option>
+                                                            <option value="23">
+                                                                11:00 p.m. (23)
+                                                            </option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-3">
+                                                        <label hidden class="m-0" for="hour">ساعت</label>
+                                                        <input type="text"
+                                                               class="form-control bg-purssianblue text-monospace"
+                                                               required
+                                                               placeholder="ساعت"
+                                                               name="hour"
+                                                               value="{% if monitor.cron %}{{ monitor.get_cron_hour }}{% endif %}"
+                                                               id="hour">
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="form-group d-flex justify-content-between">
+                                                    <div class="col-9 d-flex align-items-center justify-content-end">
+                                                        <label for="day_select"></label>
+                                                        <select id="day_select"
+                                                                onchange="select_single_option('day', event)"
+                                                                name="day_select"
+                                                                class="form-select">
+                                                            <option value="--">
+                                                                -- DAY --
+                                                            </option>
+                                                            <option value="*">
+                                                                Every Day
+                                                                (*)
+                                                            </option>
+                                                            <option value="*/2">
+                                                                Every Other Day
+                                                                (*/2)
+                                                            </option>
+                                                            <option value="1,15">
+                                                                On the 1st and 15th of the Month
+                                                                (1,15)
+                                                            </option>
+                                                            <option value="">
+                                                                -- Days --
+                                                            </option>
+                                                            <option value="1">
+                                                                1st (1)
+                                                            </option>
+                                                            <option value="2">
+                                                                2nd (2)
+                                                            </option>
+                                                            <option value="3">
+                                                                3rd (3)
+                                                            </option>
+                                                            <option value="4">
+                                                                4th (4)
+                                                            </option>
+                                                            <option value="5">
+                                                                5th (5)
+                                                            </option>
+                                                            <option value="6">
+                                                                6th (6)
+                                                            </option>
+                                                            <option value="7">
+                                                                7th (7)
+                                                            </option>
+                                                            <option value="8">
+                                                                8th (8)
+                                                            </option>
+                                                            <option value="9">
+                                                                9th (9)
+                                                            </option>
+                                                            <option value="10">
+                                                                10th (10)
+                                                            </option>
+                                                            <option value="11">
+                                                                11th (11)
+                                                            </option>
+                                                            <option value="12">
+                                                                12th (12)
+                                                            </option>
+                                                            <option value="13">
+                                                                13th (13)
+                                                            </option>
+                                                            <option value="14">
+                                                                14th (14)
+                                                            </option>
+                                                            <option value="15">
+                                                                15th (15)
+                                                            </option>
+                                                            <option value="16">
+                                                                16th (16)
+                                                            </option>
+                                                            <option value="17">
+                                                                17th (17)
+                                                            </option>
+                                                            <option value="18">
+                                                                18th (18)
+                                                            </option>
+                                                            <option value="19">
+                                                                19th (19)
+                                                            </option>
+                                                            <option value="20">
+                                                                20th (20)
+                                                            </option>
+                                                            <option value="21">
+                                                                21st (21)
+                                                            </option>
+                                                            <option value="22">
+                                                                22nd (22)
+                                                            </option>
+                                                            <option value="23">
+                                                                23rd (23)
+                                                            </option>
+                                                            <option value="24">
+                                                                24th (24)
+                                                            </option>
+                                                            <option value="25">
+                                                                25th (25)
+                                                            </option>
+                                                            <option value="26">
+                                                                26th (26)
+                                                            </option>
+                                                            <option value="27">
+                                                                27th (27)
+                                                            </option>
+                                                            <option value="28">
+                                                                28th (28)
+                                                            </option>
+                                                            <option value="29">
+                                                                29th (29)
+                                                            </option>
+                                                            <option value="30">
+                                                                30th (30)
+                                                            </option>
+                                                            <option value="31">
+                                                                31st (31)
+                                                            </option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-3">
+                                                        <label hidden class="m-0" for="day">روز</label>
+                                                        <input type="text"
+                                                               class="form-control bg-purssianblue text-monospace"
+                                                               placeholder="روز"
+                                                               required
+                                                               name="day"
+                                                               value="{% if monitor.cron %}{{ monitor.get_cron_day }}{% endif %}"
+                                                               id="day">
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="form-group d-flex justify-content-between">
+                                                    <div class="col-9 d-flex align-items-center justify-content-end">
+                                                        <label for="month_select"></label>
+                                                        <select id="month_select"
+                                                                onchange="select_single_option('month', event)"
+                                                                name="month_select"
+                                                                class="form-select">
+                                                            <option value="">
+                                                                -- MONTH --
+                                                            </option>
+                                                            <option value="*">
+                                                                Every Month
+                                                                (*)
+                                                            </option>
+                                                            <option value="*/2">
+                                                                Every Other Month
+                                                                (*/2)
+                                                            </option>
+                                                            <option value="*/4">
+                                                                Every Third Month
+                                                                (*/4)
+                                                            </option>
+                                                            <option value="1,7">
+                                                                Every Six Months
+                                                                (1,7)
+                                                            </option>
+                                                            <option value="--">
+                                                                -- Months --
+                                                            </option>
+                                                            <option value="1">
+                                                                January
+                                                                (1)
+                                                            </option>
+                                                            <option value="2">
+                                                                February
+                                                                (2)
+                                                            </option>
+                                                            <option value="3">
+                                                                March
+                                                                (3)
+                                                            </option>
+                                                            <option value="4">
+                                                                April
+                                                                (4)
+                                                            </option>
+                                                            <option value="5">
+                                                                May
+                                                                (5)
+                                                            </option>
+                                                            <option value="6">
+                                                                June
+                                                                (6)
+                                                            </option>
+                                                            <option value="7">
+                                                                July
+                                                                (7)
+                                                            </option>
+                                                            <option value="8">
+                                                                August
+                                                                (8)
+                                                            </option>
+                                                            <option value="9">
+                                                                September
+                                                                (9)
+                                                            </option>
+                                                            <option value="10">
+                                                                October
+                                                                (10)
+                                                            </option>
+                                                            <option value="11">
+                                                                November
+                                                                (11)
+                                                            </option>
+                                                            <option value="12">
+                                                                December
+                                                                (12)
+                                                            </option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-3">
+                                                        <label hidden class="m-0" for="month">ماه</label>
+                                                        <input type="text"
+                                                               class="form-control bg-purssianblue text-monospace"
+                                                               placeholder="ماه"
+                                                               required
+                                                               name="month"
+                                                               value="{% if monitor.cron %}{{ monitor.get_cron_month }}{% endif %}"
+                                                               id="month">
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="form-group d-flex justify-content-between">
+                                                    <div class="col-9 d-flex align-items-center justify-content-end">
+                                                        <label for="week_select"></label>
+                                                        <select id="week_select"
+                                                                name="week_select"
+                                                                class="form-select"
+                                                                onchange="select_single_option('week', event)">
+                                                            <option value="">
+                                                                -- WEEK --
+                                                            </option>
+                                                            <option value="*">
+                                                                Every Day
+                                                                (*)
+                                                            </option>
+                                                            <option value="1-5">
+                                                                Every Weekday
+                                                                (1-5)
+                                                            </option>
+                                                            <option value="0,6">
+                                                                Every Weekend Day
+                                                                (6,0)
+                                                            </option>
+                                                            <option value="1,3,5">
+                                                                Every Monday, Wednesday, and Friday
+                                                                (1,3,5)
+                                                            </option>
+                                                            <option value="2,4">
+                                                                Every Tuesday and Thursday
+                                                                (2,4)
+                                                            </option>
+                                                            <option value="--">
+                                                                -- Weekdays --
+                                                            </option>
+                                                            <option value="0">
+                                                                Sunday
+                                                                (0)
+                                                            </option>
+                                                            <option value="1">
+                                                                Monday
+                                                                (1)
+                                                            </option>
+                                                            <option value="2">
+                                                                Tuesday
+                                                                (2)
+                                                            </option>
+                                                            <option value="3">
+                                                                Wednesday
+                                                                (3)
+                                                            </option>
+                                                            <option value="4">
+                                                                Thursday
+                                                                (4)
+                                                            </option>
+                                                            <option value="5">
+                                                                Friday
+                                                                (5)
+                                                            </option>
+                                                            <option value="6">
+                                                                Saturday
+                                                                (6)
+                                                            </option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-3">
+                                                        <label hidden class="m-0" for="week">روز هفته</label>
+                                                        <input type="text"
+                                                               class="form-control bg-purssianblue text-monospace"
+                                                               required
+                                                               placeholder="روز هفته"
+                                                               name="week"
+                                                               value="{% if monitor.cron %}{{ monitor.get_cron_week }}{% endif %}"
+                                                               id="week">
+                                                    </div>
+                                                </div>
+                                                
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row border-top py-2">
+                                        <button type="submit" class="btn btn-primary mb-0">ثبت</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        <!-- END MONITOR DETAILS -->    
+                        
+                        <!-- MONITOR TEST -->
+                        <div class="card" id="http">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    تست مانیتور پروتکل http
+                                </h3>
+                            </div>
+                            <div class="card-body" dir="ltr">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="col-12">
+                                            <div class="row">
+                                                <div class="col-12 col-sm-6 my-1">
+                                                    <div class="d-flex justify-content-between">
+                                                        <div class="">
+                                                            <code>
+                                                                HTTP CODE :
+                                                            </code>
+                                                        </div>
+                                                        <div id="http-code"
+                                                             class="me-3 text-lightgreen text-monospace"
+                                                        >{% if last_request.type == 'http' or last_request.type == 'https' %}
+                                                                {{ last_request.data.http_code }}
+                                                            {% else %}
+                                                                0
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 my-1">
+                                                    <div class="d-flex justify-content-between">
+                                                        <div class="">
+                                                            <code>
+                                                                TIME TOTAL :
+                                                            </code>
+                                                        </div>
+                                                        <div id="time-total"
+                                                             class="me-3 text-lightgreen text-monospace"
+                                                        >{% if last_request.type == 'http' or last_request.type == 'https' %}
+                                                                {{ last_request.data.time_total }}
+                                                            {% else %}
+                                                                0
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 my-1">
+                                                    <div class="d-flex justify-content-between">
+                                                        <div class="">
+                                                            <code>
+                                                                TIME NAME LOCKUP :
+                                                            </code>
+                                                        </div>
+                                                        <div id="time-namelookup"
+                                                             class="me-3 text-lightgreen text-monospace"
+                                                        >{% if last_request.type == 'http' or last_request.type == 'https' %}
+                                                                {{ last_request.data.time_namelookup }}
+                                                            {% else %}
+                                                                0
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 my-1">
+                                                    <div class="d-flex justify-content-between">
+                                                        <div class="">
+                                                            <code>
+                                                                TIME CONNECT :
+                                                            </code>
+                                                        </div>
+                                                        <div id="time-connect"
+                                                             class="me-3 text-lightgreen text-monospace"
+                                                        >{% if last_request.type == 'http' or last_request.type == 'https' %}
+                                                                {{ last_request.data.time_connect }}
+                                                            {% else %}
+                                                                0
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 my-1">
+                                                    <div class="d-flex justify-content-between">
+                                                        <div class="">
+                                                            <code>
+                                                                TIME APP CONNECT :
+                                                            </code>
+                                                        </div>
+                                                        <div id="time-appconnect"
+                                                             class="me-3 text-lightgreen text-monospace"
+                                                        >{% if last_request.type == 'http' or last_request.type == 'https' %}
+                                                                {{ last_request.data.time_appconnect }}
+                                                            {% else %}
+                                                                0
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 my-1">
+                                                    <div class="d-flex justify-content-between">
+                                                        <div class="">
+                                                            <code>
+                                                                TIME PRE TRANSFER :
+                                                            </code>
+                                                        </div>
+                                                        <div id="time-pretransfer"
+                                                             class="me-3 text-lightgreen text-monospace"
+                                                        >{% if last_request.type == 'http' or last_request.type == 'https' %}
+                                                                {{ last_request.data.time_pretransfer }}
+                                                            {% else %}
+                                                                0
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 my-1">
+                                                    <div class="d-flex justify-content-between">
+                                                        <div class="">
+                                                            <code>
+                                                                TIME REDIRECT :
+                                                            </code>
+                                                        </div>
+                                                        <div id="time-redirect"
+                                                             class="me-3 text-lightgreen text-monospace"
+                                                        >{% if last_request.type == 'http' or last_request.type == 'https' %}
+                                                                {{ last_request.data.time_redirect }}
+                                                            {% else %}
+                                                                0
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 my-1">
+                                                    <div class="d-flex justify-content-between">
+                                                        <div class="">
+                                                            <code>
+                                                                TIME START TRANSFER :
+                                                            </code>
+                                                        </div>
+                                                        <div id="time-starttransfer"
+                                                             class="me-3 text-lightgreen text-monospace"
+                                                        >{% if last_request.type == 'http' or last_request.type == 'https' %}
+                                                                {{ last_request.data.time_starttransfer }}
+                                                            {% else %}
+                                                                0
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 mt-2 pt-2 border-top">
+                                            <a href="javascript:void(0)"
+                                               class="btn btn-sm btn-light"
+                                               id="http_test">
+                                                TEST
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card" id="icmp">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    تست مانیتور پروتکل icmp
+                                </h3>
+                            </div>
+                            <div class="card-body" dir="ltr">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="col-12">
+                                            <div class="row">
+                                                <div class="col-12">
+                                                    <div class="d-flex justify-content-between">
+                                                        <div class="">
+                                                            <code>
+                                                                HEADER :
+                                                            </code>
+                                                        </div>
+                                                        <div id="header"
+                                                             class="me-3 text-lightgreen text-monospace">{% if last_request.type == 'icmp' %}{{ last_request.data.header }}{% else %}0{% endif %}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <div class="d-flex justify-content-between">
+                                                        <div class="">
+                                                            <code>
+                                                                RESULT :
+                                                            </code>
+                                                        </div>
+                                                        <div id="result"
+                                                             class="me-3 text-lightgreen text-monospace">{% if last_request.type == 'icmp' %}{{ last_request.data.result }}{% else %}0{% endif %}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 my-1">
+                                                    <div class="d-flex justify-content-between">
+                                                        <div class="">
+                                                            <code>
+                                                                PACKET LOST PERCENTAGE :
+                                                            </code>
+                                                        </div>
+                                                        <div id="packet_lost_percentage"
+                                                             class="me-3 text-lightgreen text-monospace">{% if last_request.type == 'icmp' %}{{ last_request.data.packet_lost_percentage }}{% else %}0{% endif %}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 my-1">
+                                                    <div class="d-flex justify-content-between">
+                                                        <div class="">
+                                                            <code>
+                                                                MIN :
+                                                            </code>
+                                                        </div>
+                                                        <div id="min"
+                                                             class="me-3 text-lightgreen text-monospace">{% if last_request.type == 'icmp' %}{{ last_request.data.min }}{% else %}0{% endif %}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 my-1">
+                                                    <div class="d-flex justify-content-between">
+                                                        <div class="">
+                                                            <code>
+                                                                AVG :
+                                                            </code>
+                                                        </div>
+                                                        <div id="avg"
+                                                             class="me-3 text-lightgreen text-monospace">{% if last_request.type == 'icmp' %}{{ last_request.data.avg }}{% else %}0{% endif %}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 my-1">
+                                                    <div class="d-flex justify-content-between">
+                                                        <div class="">
+                                                            <code>
+                                                                MAX :
+                                                            </code>
+                                                        </div>
+                                                        <div id="max"
+                                                             class="me-3 text-lightgreen text-monospace">{% if last_request.type == 'icmp' %}{{ last_request.data.max }}{% else %}0{% endif %}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 my-1">
+                                                    <div class="d-flex justify-content-between">
+                                                        <div class="">
+                                                            <code>
+                                                                MDEV :
+                                                            </code>
+                                                        </div>
+                                                        <div id="mdev"
+                                                             class="me-3 text-lightgreen text-monospace">{% if last_request.type == 'icmp' %}{{ last_request.data.mdev }}{% else %}0{% endif %}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 my-1">
+                                                    <div class="d-flex justify-content-between">
+                                                        <div class="">
+                                                            <code>
+                                                                TIMES :
+                                                            </code>
+                                                        </div>
+                                                        <div id="times"
+                                                             class="me-3 text-lightgreen text-monospace">{% if last_request.type == 'icmp' %}{{ last_request.data.times }}{% else %}0{% endif %}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 mt-2 pt-2 border-top">
+                                            <a href="javascript:void(0)"
+                                               class="btn btn-sm btn-light"
+                                               id="icmp_test">
+                                                TEST
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- END MONITOR TEST -->
+                        
+                        <!-- MONITOR CHART -->
+                        {% if monitor and label and data and min and max %}
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">
+                                        نمودار لاگ‌های مانیتور
+                                    </h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-4">
+                                        <div class="col-12">
+                                            <div class="chart-container">
+                                                <div class="filter d-flex justify-content-start">
+                                                    <div class="filter-title" style="font-size: 15px; color: aqua">فیلتر بر اساس: </div>
+                                                    <a onclick="dayQuery()" class="d-query mx-4">
+                                                        روز
+                                                    </a>
+                                                    <a onclick="weekQuery()" class="d-query mx-4">
+                                                        هفته
+                                                    </a>
+                                                    <a onclick="monthQuery()" class="d-query mx-4">
+                                                        ماه
+                                                    </a>
+                                                </div>
+                                                <canvas id="chartLine" class="h-450"></canvas>
+                                            </div>
+                                        </div>
+                                        <div class="col-12" dir="ltr">
+                                            <div class="row">
+                                                <div class="col-12 col-md-6 my-1">
+                                                    <div class="d-flex justify-content-between">
+                                                        <div class="">
+                                                            <code class="text-nowrap">
+                                                                AVERAGE TIME :
+                                                            </code>
+                                                        </div>
+                                                        <div class="text-lightgreen text-sm-nowrap">
+                                                            {{ avg }}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-md-6 my-1">
+                                                    <div class="d-flex justify-content-between">
+                                                        <div class="">
+                                                            <code class="text-nowrap">
+                                                                STANDARD DEVISION TIME :
+                                                            </code>
+                                                        </div>
+                                                        <div class="text-lightgreen text-sm-nowrap">
+                                                            {{ std_dev }}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row border-top pt-4" dir="ltr">
+
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                        <!-- END MONITOR CHART -->
+                        
+                    </div>
+                </div>
+                <!-- /write your code here -->
+
+            </div>
+            <!-- CONTAINER END -->
+        </div>
+    </div>
+    <!--app-content close-->
+
+
+    <!-- Sidebar-right -->
+    {% comment %}
+    {% include 'side_bar.html' %}
+    {% endcomment %}
+    <!--/Sidebar-right-->
+
+    <!-- Country-selector modal-->
+    {% comment %}
+    {% include 'country_selector.html' %}
+    {% endcomment %}
+    <!-- Country-selector modal-->
+
+    <!-- FOOTER -->
+    {% include 'footer.html' %}
+    <!-- FOOTER END -->
+
+    <!-- BACK-TO-TOP -->
+    <a href="#top" id="back-to-top"><i class="fa fa-angle-up"></i></a>
+{% endblock %}

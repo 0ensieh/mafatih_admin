@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}کد تائید دو عاملی{% endblock %}
+{% block css %}
+    <style>
+        div.login-img {
+            background: linear-gradient(
+                    to left top,
+                    rgba(0, 255, 217, 0.75),
+                    rgba(155, 73, 255, 0.68)
+            ),
+            url("{% static 'assets/images/media/bg2.jpg' %}") center top;
+            background-size: cover;
+        }
+
+        /* for JQuery form validator error labels */
+        label.error {
+            color: rgba(255, 0, 0, 0.82);
+            font-size: 11px;
+            cursor: pointer;
+            position: absolute;
+            z-index: 8;
+            left: 0;
+            bottom: calc(100% - 16px);
+        }
+    </style>
+{% endblock %}
+{% block js %}
+    <!-- JQUERY FORM VALIDATOR -->
+    <script type="text/javascript"
+            src="{% static 'assets/plugins/jquery-form-validator/jquery.validate.js' %}"></script>
+
+    <!-- JQUERY FORM VALIDATOR FA -->
+    <script type="text/javascript"
+            src="{% static 'assets/plugins/jquery-form-validator/localization/messages_fa.js' %}"></script>
+
+    <!-- SHOW PASSWORD JS -->
+    <script src="{% static 'assets/js/show-password.min.js' %}"></script>
+
+    <script>
+        $(document).ready(function () {
+            // Change default message in jquery form validator
+            $.extend($.validator.messages, {
+                required: 'الزامی است'
+            });
+
+            $('form[name="code"]').validate({
+                rules: {
+                    code: {
+                        required: true,
+                        number: true,
+                        maxlength: 6,
+                        minlength: 4
+                    }
+                },
+                messages: {
+                    maxlength: "کد وارد شده معتبر نیست",
+                    minlength: "کد وارد شده معتبر نیست",
+                }
+            });
+
+            {% if messages %}
+                {% for message in messages %}
+                    Toastify({
+                        text: "{{ message }}",
+                        duration: 3000,
+                        newWindow: true,
+                        close: true,
+                        gravity: 'top', // `top` or `bottom`
+                        position: 'center', // `left`, `center` or `right`
+                        stopOnFocus: true, // Prevents dismissing of toast on hover
+                        style: {
+                            background: 'rgb(108,95,252)',
+                        },
+                        onClick: function () {
+                        } // Callback after click
+                    }).showToast();
+                {% endfor %}
+            {% endif %}
+        });
+    </script>
+{% endblock %}
+{% block body_class %}ltr{% endblock %}
+{% block body %}
+    <!-- CONTAINER OPEN -->
+
+
+    <!-- BACKGROUND-IMAGE -->
+    <div class="login-img">
+
+        <!-- GLOABAL LOADER -->
+        {% comment %} <div id="global-loader">
+            <img src="{% static "assets/images/loader.svg" %}" class="loader-img" alt="Loader">
+        </div> {% endcomment %}
+        <!-- /GLOABAL LOADER -->
+
+        <!-- PAGE -->
+        <div class="page">
+            <div class="">
+
+                <!-- CONTAINER OPEN -->
+                <div class="col col-login mx-auto mt-7">
+                    <div class="text-center">
+                        <img src="{% static "assets/images/brand/favicon.svg" %}"
+                             style="max-width: 90px"
+                             class="header-brand-img"
+                             alt="logo">
+                    </div>
+                </div>
+
+                <div class="container-login100">
+                    <div class="wrap-login100 col-10 col-sm-8 col-md-5 p-6 w-70">
+                        <form method="post" name="code" class="login100-form validate-form">
+                            {% csrf_token %}
+                            <span class="font-bold login100-form-title pb-5">
+                                کد تائید دو عاملی
+                            </span>
+                            <div class="panel panel-primary">
+                                <div class="tab-menu-heading">
+                                    <div class="tabs-menu1">
+                                        <!-- Tabs -->
+                                        {% comment %} <ul class="nav panel-tabs">
+                                            <li class="mx-0"><a href="#tab5"
+                                                                class="active"
+                                                                data-bs-toggle="tab">Email</a></li>
+                                            <li class="mx-0"><a href="#tab6" data-bs-toggle="tab">Mobile</a></li>
+                                        </ul> {% endcomment %}
+                                    </div>
+                                </div>
+                                <div class="panel-body tabs-menu-body p-0 pt-5">
+                                    <div class="tab-content">
+                                        <div class="tab-pane active" id="tab5">
+                                            <div class="py-3 position-relative">
+                                                {% comment %} <a href="javascript:void(0)"
+                                                   tabindex="-1"
+                                                   class="input-group-text bg-white text-muted">
+                                                    <i class="bi bi-phone" aria-hidden="true"></i>
+                                                </a> {% endcomment %}
+                                                <label hidden for="code"></label>
+                                                <input required
+                                                       name="code"
+                                                       id="code"
+                                                       autofocus
+                                                       autocomplete="off"
+                                                       title="لظفا کد را وارد کنید"
+                                                       class="form-control form-control-lg text-center"
+                                                       type="number"
+                                                       value="{% if code %}{{ code.0 }}{% endif %}"
+                                                       placeholder="code">
+                                            </div>
+                                            <div class="container-login100-form-btn">
+                                                <button type="submit" class="btn login100-form-btn btn-primary fs-1">
+                                                    ثبت
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </form>
+                    </div>
+                </div>
+                <!-- CONTAINER CLOSED -->
+            </div>
+        </div>
+        <!-- End PAGE -->
+
+    </div>
+    <!-- BACKGROUND-IMAGE CLOSED -->
+
+
+    <!-- CONTAINER CLOSED -->
+{% endblock %}
+

@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}
+    دستور شماره‌ی
+    {{ monitor_work.id }}
+{% endblock %}
+{% block css %}{% endblock %}
+{% block js %}
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            {% if messages %}
+                {% for message in messages %}
+                    Toastify({
+                        text: "{{ message }}",
+                        duration: 3000,
+                        newWindow: true,
+                        close: true,
+                        gravity: "top", // `top` or `bottom`
+                        position: "center", // `left`, `center` or `right`
+                        stopOnFocus: true, // Prevents dismissing of toast on hover
+                        style: {
+                            background: "rgb(108,95,252)"
+                        },
+                        onClick: function () {
+                        } // Callback after click
+                    }).showToast();
+                {% endfor %}
+            {% endif %}
+        });
+    </script>
+{% endblock %}
+{% block body_class %}rtl{% endblock %}
+{% block body %}
+
+    <!-- GLOBAL-LOADER -->
+    {% comment %}{% include 'loader.html' %}{% endcomment %}
+    <!-- /GLOBAL-LOADER -->
+
+    <!-- app-Header -->
+    {% include 'header.html' %}
+    <!-- /app-Header -->
+
+    <!--APP-SIDEBAR-->
+    {% include 'menu.html' %}
+
+    <!--app-content open-->
+    <div class="main-content app-content mt-0">
+        <div class="side-app">
+            <!-- CONTAINER -->
+            <div class="main-container container-fluid">
+                <!-- PAGE-HEADER OPTIONAL TO WRITE SOME DATA ABOUT request.user -->
+                <div class="page-header">
+                    <div class="d-flex">
+                        <h1 class="page-title px-2">
+                            {% if request.META.HTTP_REFERER %}
+                                <a href="{{ request.META.HTTP_REFERER }}">
+                                    <i class="fa fa-arrow-right"></i>
+                                    برگشت
+                                </a>
+                            {% endif %}
+                        </h1>
+                        <h1 class="page-title px-2">
+                            ویرایش دستور شماره‌ی
+                            {{ monitor_work.id }}
+                        </h1>
+                    </div>
+                    <div>
+                        <ol class="breadcrumb mx-2">
+                            <li class="breadcrumb-item active" aria-current="page">
+                                دستور شماره‌ی
+                                {{ monitor_work.id }}
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{% url 'monitor:work:work_list' monitor_work.monitor.id %}">
+                                    لیست دستورات مانیتور
+                                    {{ monitor_work.monitor.name }}
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{% url 'monitor:monitor_single' monitor_work.monitor.id %}">
+                                    مانیتور
+                                    {{ monitor_work.monitor.name }}
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{% url 'dashboard' %}">
+                                    خانه
+                                </a>
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+                <!-- PAGE-HEADER END -->
+
+                <!-- write your code here -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    ویرایش دستور شماره‌ی
+                                    {{ monitor_work.id }}
+                                </h3>
+                            </div>
+                            <div class="card-body" dir="ltr">
+                                <form action="" method="post">
+                                    {% csrf_token %}
+                                    <div class="d-flex justify-content-between">
+                                        <label hidden="" for="status_code"></label>
+                                        <select class="form-select col-3 mx-1"
+                                                name="status_code"
+                                                aria-label="Default select example"
+                                                required
+                                                id="status_code">
+                                            <option value="">status code</option>
+                                            <optgroup label="1xx">
+                                                <option value="100" {% if monitor_work.status_code == "100" %}selected{% endif %} >100</option>
+                                                <option value="101" {% if monitor_work.status_code == "101" %}selected{% endif %} >101</option>
+                                                <option value="102" {% if monitor_work.status_code == "102" %}selected{% endif %} >102</option>
+                                                <option value="103" {% if monitor_work.status_code == "103" %}selected{% endif %} >103</option>
+                                            </optgroup>
+                                            <optgroup label="2xx">
+                                                <option value="200" {% if monitor_work.status_code == "200" %}selected{% endif %} >200</option>
+                                                <option value="201" {% if monitor_work.status_code == "201" %}selected{% endif %} >201</option>
+                                                <option value="202" {% if monitor_work.status_code == "202" %}selected{% endif %} >202</option>
+                                                <option value="203" {% if monitor_work.status_code == "203" %}selected{% endif %} >203</option>
+                                                <option value="204" {% if monitor_work.status_code == "204" %}selected{% endif %} >204</option>
+                                                <option value="205" {% if monitor_work.status_code == "205" %}selected{% endif %} >205</option>
+                                                <option value="206" {% if monitor_work.status_code == "206" %}selected{% endif %} >206</option>
+                                                <option value="207" {% if monitor_work.status_code == "207" %}selected{% endif %} >207</option>
+                                                <option value="208" {% if monitor_work.status_code == "208" %}selected{% endif %} >208</option>
+                                                <option value="226" {% if monitor_work.status_code == "226" %}selected{% endif %} >226</option>
+                                            </optgroup>
+                                            <optgroup label="3xx">
+                                                <option value="300" {% if monitor_work.status_code == "300" %}selected{% endif %} >300</option>
+                                                <option value="301" {% if monitor_work.status_code == "301" %}selected{% endif %} >301</option>
+                                                <option value="302" {% if monitor_work.status_code == "302" %}selected{% endif %} >302</option>
+                                                <option value="303" {% if monitor_work.status_code == "303" %}selected{% endif %} >303</option>
+                                                <option value="304" {% if monitor_work.status_code == "304" %}selected{% endif %} >304</option>
+                                                <option value="305" {% if monitor_work.status_code == "305" %}selected{% endif %} >305</option>
+                                                <option value="306" {% if monitor_work.status_code == "306" %}selected{% endif %} >306</option>
+                                                <option value="307" {% if monitor_work.status_code == "307" %}selected{% endif %} >307</option>
+                                                <option value="308" {% if monitor_work.status_code == "308" %}selected{% endif %} >308</option>
+                                            </optgroup>
+                                            <optgroup label="4xx">
+                                                <option value="400" {% if monitor_work.status_code == "400" %}selected{% endif %} >400</option>
+                                                <option value="401" {% if monitor_work.status_code == "401" %}selected{% endif %} >401</option>
+                                                <option value="402" {% if monitor_work.status_code == "402" %}selected{% endif %} >402</option>
+                                                <option value="403" {% if monitor_work.status_code == "403" %}selected{% endif %} >403</option>
+                                                <option value="404" {% if monitor_work.status_code == "404" %}selected{% endif %} >404</option>
+                                                <option value="405" {% if monitor_work.status_code == "405" %}selected{% endif %} >405</option>
+                                                <option value="406" {% if monitor_work.status_code == "406" %}selected{% endif %} >406</option>
+                                                <option value="407" {% if monitor_work.status_code == "407" %}selected{% endif %} >407</option>
+                                                <option value="408" {% if monitor_work.status_code == "408" %}selected{% endif %} >408</option>
+                                                <option value="409" {% if monitor_work.status_code == "409" %}selected{% endif %} >409</option>
+                                                <option value="410" {% if monitor_work.status_code == "410" %}selected{% endif %} >410</option>
+                                                <option value="411" {% if monitor_work.status_code == "411" %}selected{% endif %} >411</option>
+                                                <option value="412" {% if monitor_work.status_code == "412" %}selected{% endif %} >412</option>
+                                                <option value="413" {% if monitor_work.status_code == "413" %}selected{% endif %} >413</option>
+                                                <option value="414" {% if monitor_work.status_code == "414" %}selected{% endif %} >414</option>
+                                                <option value="415" {% if monitor_work.status_code == "415" %}selected{% endif %} >415</option>
+                                                <option value="416" {% if monitor_work.status_code == "416" %}selected{% endif %} >416</option>
+                                                <option value="417" {% if monitor_work.status_code == "417" %}selected{% endif %} >417</option>
+                                                <option value="418" {% if monitor_work.status_code == "418" %}selected{% endif %} >418</option>
+                                                <option value="421" {% if monitor_work.status_code == "421" %}selected{% endif %} >421</option>
+                                                <option value="422" {% if monitor_work.status_code == "422" %}selected{% endif %} >422</option>
+                                                <option value="423" {% if monitor_work.status_code == "423" %}selected{% endif %} >423</option>
+                                                <option value="424" {% if monitor_work.status_code == "424" %}selected{% endif %} >424</option>
+                                                <option value="425" {% if monitor_work.status_code == "425" %}selected{% endif %} >425</option>
+                                                <option value="426" {% if monitor_work.status_code == "426" %}selected{% endif %} >426</option>
+                                                <option value="428" {% if monitor_work.status_code == "428" %}selected{% endif %} >428</option>
+                                                <option value="429" {% if monitor_work.status_code == "429" %}selected{% endif %} >429</option>
+                                                <option value="431" {% if monitor_work.status_code == "431" %}selected{% endif %} >431</option>
+                                                <option value="444" {% if monitor_work.status_code == "444" %}selected{% endif %} >444</option>
+                                                <option value="451" {% if monitor_work.status_code == "451" %}selected{% endif %} >451</option>
+                                                <option value="499" {% if monitor_work.status_code == "499" %}selected{% endif %} >499</option>
+                                            </optgroup>
+                                            <optgroup label="5xx">
+                                                <option value="500" {% if monitor_work.status_code == "500" %}selected{% endif %} >500</option>
+                                                <option value="501" {% if monitor_work.status_code == "501" %}selected{% endif %} >501</option>
+                                                <option value="502" {% if monitor_work.status_code == "502" %}selected{% endif %} >502</option>
+                                                <option value="503" {% if monitor_work.status_code == "503" %}selected{% endif %} >503</option>
+                                                <option value="504" {% if monitor_work.status_code == "504" %}selected{% endif %} >504</option>
+                                                <option value="505" {% if monitor_work.status_code == "505" %}selected{% endif %} >505</option>
+                                                <option value="506" {% if monitor_work.status_code == "506" %}selected{% endif %} >506</option>
+                                                <option value="507" {% if monitor_work.status_code == "507" %}selected{% endif %} >507</option>
+                                                <option value="508" {% if monitor_work.status_code == "508" %}selected{% endif %} >508</option>
+                                                <option value="510" {% if monitor_work.status_code == "510" %}selected{% endif %} >510</option>
+                                                <option value="511" {% if monitor_work.status_code == "511" %}selected{% endif %} >511</option>
+                                                <option value="599" {% if monitor_work.status_code == "599" %}selected{% endif %} >599</option>
+                                            </optgroup>
+                                        </select>
+
+                                        <label hidden="" for="max_time"></label>
+                                        <input class="form-control mx-1 col-3 text-end"
+                                               type="number"
+                                               name="max_time"
+                                               required
+                                               value="{% if monitor_work.max_time %}{{ monitor_work.max_time }}{% endif %}"
+                                               placeholder="max_time"
+                                               id="max_time">
+
+                                        <label hidden="" for="method"></label>
+                                        <select class="form-select col-3"
+                                                name="method"
+                                                id="method">
+                                            <option value="">method</option>
+                                            <option value="1" {% if monitor_work.method == 1 %}selected{% endif %} >SMS</option>
+                                            <option value="2" {% if monitor_work.method == 2 %}selected{% endif %} >EMAIL</option>
+                                            <option value="3" {% if monitor_work.method == 3 %}selected{% endif %} >TELEGRAM</option>
+                                        </select>
+                                    </div>
+                                    <div class="d-flex my-3">
+                                        <label hidden="" for="phones"></label>
+                                        <textarea class="form-control text-code"
+                                                  name="phones"
+                                                  id="phones"
+                                                  cols="30"
+                                                  required
+                                                  placeholder="09109999999 09129999999 09389999999"
+                                                  rows="3">{% if monitor_work.phones %}{{ monitor_work.phones.strip }}{% endif %}</textarea>
+                                    </div>
+                                    <a data-confirm="Are you sure?"
+                                       data-method="delete"
+                                       hreflang="fa"
+                                       href="{% url 'monitor:work:work_single' monitor_work.monitor.id monitor_work.id %}?del=True"
+                                       class="btn btn-danger">
+                                        حذف
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        ثبت
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- /write your code here -->
+
+            </div>
+            <!-- CONTAINER END -->
+        </div>
+    </div>
+    <!--app-content close-->
+
+
+    <!-- Sidebar-right -->
+    {% comment %}
+    {% include 'side_bar.html' %}
+    {% endcomment %}
+    <!--/Sidebar-right-->
+
+    <!-- Country-selector modal-->
+    {% comment %}
+    {% include 'country_selector.html' %}
+    {% endcomment %}
+    <!-- Country-selector modal-->
+
+    <!-- FOOTER -->
+    {% include 'footer.html' %}
+    <!-- FOOTER END -->
+
+    <!-- BACK-TO-TOP -->
+    <a href="#top" id="back-to-top"><i class="fa fa-angle-up"></i></a>
+{% endblock %}

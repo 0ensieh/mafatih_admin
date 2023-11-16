@@ -1,0 +1,186 @@
+{% extends "base.html" %}{% load jformat %}
+{% load static %}
+{% block title %}لیست مانیتورها{% endblock %}
+{% block css %}
+    <style>
+        .add-monitor a {
+            font-size: 25px;
+        }
+
+        span.online {
+            height: 15px;
+            width: 15px;
+            background: #0ae50a;
+            border-radius: 500rem;
+            position: absolute;
+            right: -22px;
+        }
+
+        .monitor-domain {
+            position: relative;
+        }
+
+        span.offline {
+            height: 15px;
+            width: 15px;
+            background: #7a897a;
+            border-radius: 500rem;
+            position: absolute;
+            right: -22px;
+        }
+    </style>
+{% endblock %}
+
+{% block js %}
+    <!-- INTERNAL Data tables js-->
+    <script src="{% static 'assets/plugins/datatable/js/jquery.dataTables.min.js' %}"></script>
+    <script src="{% static 'assets/plugins/datatable/js/dataTables.bootstrap5.js' %}"></script>
+    <script src="{% static 'assets/plugins/datatable/dataTables.responsive.min.js' %}"></script>
+    <script>
+        $(document).ready(function () {
+            $('#data-table').DataTable({
+                language: {
+                    "decimal": "",
+                    "emptyTable": "هیچ رکوردی وجود ندارد",
+                    "info": "نمایش از _START_ تا _END_ از _TOTAL_ ریکورد",
+                    "infoEmpty": "ریکوردی جهت نمایش وجود ندارد",
+                    "infoFiltered": "(filtered from _MAX_ total entries)",
+                    "infoPostFix": "",
+                    "thousands": ",",
+                    "lengthMenu": "نمایش تعداد _MENU_ ریکورد در هر صفحه",
+                    "loadingRecords": "در حال لود کردن اطلاعات...",
+                    "processing": "در حال پردازش...",
+                    "search": "جستجو:",
+                    "zeroRecords": "No matching records found",
+                    "paginate": {
+                        "first": "اول",
+                        "last": "آخر",
+                        "next": "بعد",
+                        "previous": "قبل"
+                    },
+                    "aria": {
+                        "sortAscending": ": activate to sort column ascending",
+                        "sortDescending": ": activate to sort column descending"
+                    }
+                }
+            });
+        });
+    </script>
+{% endblock %}
+
+{% block body %}
+    {% include "header.html" %}
+    {% include "menu.html" %}
+    <div class="main-content app-content mt-0">
+        <div class="side-app">
+            <div class="main-container container-fluid">
+
+                <!-- PAGE-HEADER OPTIONAL TO WRITE SOME DATA ABOUT request.user -->
+                <div class="page-header">
+                    <div class="w-100 d-flex justify-content-between">
+                        <div class="d-flex">
+                            <h1 class="page-title px-2">
+                                {% if request.META.HTTP_REFERER %}
+                                <a href="{{ request.META.HTTP_REFERER }}">
+                                    <i class="fa fa-arrow-right"></i>
+                                    <span class="d-none d-sm-none d-md-inline-block">برگشت</span>
+                                </a>
+                                {% endif %}
+                            </h1>
+                            <div class="d-none d-sm-none d-md-block">
+                                <h1 class="page-title px-2">لیست مانیتور‌ها</h1>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <ol class="breadcrumb mx-2">
+                                <li class="breadcrumb-item active" aria-current="page">لیست مانیتور‌ها</li>
+                                <li class="breadcrumb-item">
+                                    <a href="{% url 'dashboard' %}">خانه</a>
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+                <!-- PAGE-HEADER END -->
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title mb-0">لیست مانیتورها</h3>
+                        <a href="{% url 'monitor:monitor_single' %}"
+                           class="btn btn-primary ms-auto"
+                           aria-expanded="false">
+                            اضافه کردن<span class="caret"></span>
+                        </a>
+                    </div>
+                    <div class="card-body pt-4">
+                        <div class="grid-margin">
+                            <div class="panel panel-primary">
+                                <div class="panel-body tabs-menu-body border-0 pt-0">
+                                    <div class="table-responsive">
+                                        <table id="data-table" class="table table-bordered text-nowrap mb-0">
+                                            <thead class="border-top">
+                                            <tr>
+                                                <th class="bg-transparent border-bottom-0">آی دی</th>
+                                                <th class="bg-transparent border-bottom-0">نام سایت</th>
+                                                <th class="bg-transparent border-bottom-0">تاریخ ایجاد</th>
+                                                <th class="bg-transparent border-bottom-0">تاریخ آخرین به روز رسانی</th>
+                                                <th class="bg-transparent border-bottom-0">وضعیت</th>
+                                                <th class="bg-transparent border-bottom-0" style="width: 5%;">عملیات
+                                                </th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {% for monitor in monitors %}
+                                                <tr class="border-bottom">
+                                                    <td class="text-center">
+                                                        <div class="mt-0 mt-sm-2 d-block">
+                                                            <h6 class="mb-0 fs-14 fw-semibold">#{{ monitor.id }}</h6>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="d-flex">
+                                                            <div class="ms-3 mt-0 mt-sm-2 d-block">
+                                                                <h6 class="mb-0 fs-14 fw-semibold">{{ monitor.name }}</h6>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span class="mt-sm-2 d-block">{{ monitor.created_at|jformat:"%Y-%m-%d" }}</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="fw-semibold mt-sm-2 d-block">{% if monitor.last_log %}{{ monitor.last_log.created_at|jformat:"%Y-%m-%d" }}{% else %}{{ monitor.updated_at|jformat:"%Y-%m-%d" }}{% endif %}</span>
+                                                    </td>
+                                                    <td>
+                                                        {% if monitor.get_monitor_status == 200 or monitor.get_monitor_status == 'active' %}
+                                                            <div class="mt-sm-1 d-block">
+                                                                <span class="badge bg-success-transparent rounded-pill text-success p-2 px-3">{{ monitor.get_monitor_status }}</span>
+                                                            </div>
+                                                        {% else %}
+                                                            <div class="mt-sm-1 d-block">
+                                                                <span class="badge bg-danger-transparent rounded-pill text-danger p-2 px-3">{{ monitor.get_monitor_status }}</span>
+                                                            </div>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <div class="g-2">
+                                                            <a href="{% url 'monitor:monitor_single' monitor.id %}"
+                                                               class="btn text-primary btn-sm" data-bs-toggle="tooltip"
+                                                               data-bs-original-title="ویرایش">
+                                                                <span class="fe fe-edit fs-14"></span>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
