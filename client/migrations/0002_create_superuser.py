@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 def generate_superuser(apps, schema_editor):
     User = get_user_model()
     u = User()
-    u.cellphone = "+09120787285"
+    u.cellphone = "+989120787285"
     u.username = u.cellphone
     u.first_name = "saeed"
     u.last_name = "rahimi"

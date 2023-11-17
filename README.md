@@ -54,6 +54,9 @@
   <pre>$ docker run -it -p 80:80 [the name you chose]</pre>
 </div>
 <br>
+to open the project  user is +989120787285 and the pass is 152490
+the projects database is mysql but i commented those lines in settings.py in this demo
+
 
 the user is +0989120787285 and the pass is 152490
 

@@ -79,36 +79,36 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 
-LOCAL = (os.getenv('REMOTEDB', 'False') == 'False')
+# LOCAL = (os.getenv('REMOTEDB', 'False') == 'False')
 
-if LOCAL:
-    # DATABASES = {
-    #     'default': {
-    #         'ENGINE': 'django.db.backends.sqlite3',
-    #         'NAME': BASE_DIR / 'db.sqlite3',
-    #     }
-    # }
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'mafatih_stage',
-            'USER': 'zamoosh',
-            'PASSWORD': '66569211',
-            'HOST': '127.0.0.1',
-            'PORT': '3306',
-        }
+# if LOCAL:
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': os.environ.get("DATABASE_ENGINE", "django.db.backends.mysql"),
-            'NAME': os.environ.get("DATABASE_NAME", "hosting"),
-            'USER': os.environ.get("DATABASE_USER", "asghar"),
-            'PASSWORD': os.environ.get("DATABASE_PASSWORD", "!@#qWe#@!2020"),
-            'HOST': os.environ.get("DATABASE_HOST", "192.168.88.100"),
-            'PORT': os.environ.get("DATABASE_PORT", '3306'),
-        }
-    }
+}
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': 'django.db.backends.mysql',
+#             'NAME': 'mafatih_stage',
+#             'USER': 'zamoosh',
+#             'PASSWORD': '66569211',
+#             'HOST': '127.0.0.1',
+#             'PORT': '3306',
+#         }
+#     }
+# else:
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': os.environ.get("DATABASE_ENGINE", "django.db.backends.mysql"),
+#             'NAME': os.environ.get("DATABASE_NAME", "hosting"),
+#             'USER': os.environ.get("DATABASE_USER", "asghar"),
+#             'PASSWORD': os.environ.get("DATABASE_PASSWORD", "!@#qWe#@!2020"),
+#             'HOST': os.environ.get("DATABASE_HOST", "192.168.88.100"),
+#             'PORT': os.environ.get("DATABASE_PORT", '3306'),
+#         }
+#     }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
